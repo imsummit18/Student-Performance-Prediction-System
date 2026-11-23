@@ -32,11 +32,14 @@ import GetAppIcon from "@mui/icons-material/GetApp";
 import PersonIcon from "@mui/icons-material/Person";
 
 import { api, endpoints } from "../../services/api";
+import { DeleteConfirmationDialog, ManagementHeader, ManagementStat, ManagementTable } from "../../components/ManagementUI";
+
 
 const AdminEnseignants = () => {
   const [enseignants, setEnseignants] = useState([]);
   const [loading, setLoading] = useState(true);
   const [openDialog, setOpenDialog] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState(null);
   const [formData, setFormData] = useState({
     id: null,
     first_name: "",
@@ -46,6 +49,8 @@ const AdminEnseignants = () => {
   });
   const [editMode, setEditMode] = useState(false);
   const [error, setError] = useState(null);
+  const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
+  const [deleteId, setDeleteId] = useState(null);
   const theme = useTheme();
 
   // Fetch enseignants from the backend
@@ -337,7 +342,10 @@ const AdminEnseignants = () => {
                         </IconButton>
                         <IconButton
                           color="error"
-                          onClick={() => handleDelete(enseignant.id)}
+                          onClick={() => {
+                            setDeleteId(enseignant.id);
+                            setOpenDeleteDialog(true);
+                          }}
                           size="small"
                         >
                           <DeleteIcon fontSize="small" />
@@ -420,6 +428,28 @@ const AdminEnseignants = () => {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Delete confirmation dialog */}
+      <DeleteConfirmationDialog
+        open={openDeleteDialog}
+        onClose={() => setOpenDeleteDialog(false)}
+        onConfirm={async () => {
+          if (deleteId) {
+            await handleDelete(deleteId);
+            setDeleteId(null);
+          }
+          setOpenDeleteDialog(false);
+        }}
+        title="Delete Teacher"
+        message="Are you sure you want to delete this teacher? This action cannot be undone."
+      />
+      <DeleteConfirmationDialog
+        open={!!deleteTarget}
+        title="Delete Teacher"
+        name={deleteTarget ? `${deleteTarget.first_name} ${deleteTarget.last_name}` : ''}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={async () => { await handleDelete(deleteTarget.id); setDeleteTarget(null); }}
+      />
     </Box>
   );
 };

@@ -17,46 +17,10 @@ import {
 } from '@mui/icons-material';
 
 import { api, endpoints } from '../../services/api';
+import PageTitle from '../../components/PageTitle';
+import { StatCard, ChartCard, DashboardHeader, DashboardLoading } from '../../components/DashboardUI';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
-
-const StatCard = ({ title, value, icon, color, subtitle }) => {
-  return (
-    <Card elevation={0} sx={{ height: '100%', border: '1px solid', borderColor: 'divider', borderRadius: 0 }}>
-      <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
-        <Box display="flex" alignItems="center" gap={2}>
-            <Avatar 
-                variant="square" 
-                sx={{ 
-                    bgcolor: `${color}15`, 
-                    color: color,
-                    width: 48,
-                    height: 48,
-                    borderRadius: 0
-                }}
-            >
-                {React.cloneElement(icon, { sx: { fontSize: 24 } })}
-            </Avatar>
-            <Box overflow="hidden">
-                <Typography variant="caption" color="text.secondary" fontWeight="600" sx={{ textTransform: 'uppercase', letterSpacing: 0.5 }}>
-                    {title}
-                </Typography>
-                <Typography variant="h5" fontWeight="700" noWrap title={value} sx={{ lineHeight: 1.2, my: 0.5 }}>
-                    {value}
-                </Typography>
-                {subtitle && (
-                    <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem', display: 'block' }} noWrap>
-                        {subtitle}
-                    </Typography>
-                )}
-            </Box>
-        </Box>
-      </CardContent>
-    </Card>
-  );
-};
-
-import PageTitle from '../../components/PageTitle';
 
 const TeacherDashboard = () => {
     const theme = useTheme();
@@ -87,7 +51,7 @@ const TeacherDashboard = () => {
         fetchStats();
     }, []);
 
-    if (loading) return <Box p={3} display="flex" justifyContent="center"><CircularProgress /></Box>;
+    if (loading) return <DashboardLoading />;
     if (error) return <Box p={3}><Alert severity="error">{error}</Alert></Box>;
 
     return (
@@ -96,15 +60,11 @@ const TeacherDashboard = () => {
                 title="Student Performance Prediction System - Teacher Portal"
                 description="Teacher dashboard: classes, students and performance."
             />
-            <Box mb={4}>
-                <Typography variant="h4" fontWeight="800" color="primary" gutterBottom>
-                    Teacher Portal
-                </Typography>
-                <Typography variant="body1" color="text.secondary">
-                    Class, performance and engagement monitoring.
-                </Typography>
-                <Divider sx={{ mt: 2 }} />
-            </Box>
+            <DashboardHeader
+                eyebrow="Teacher workspace"
+                title="Teacher Portal"
+                description="Class, performance and engagement monitoring."
+            />
 
             {/* --- 4 CARDS --- */}
             <Grid container spacing={3} mb={4}>
@@ -151,99 +111,66 @@ const TeacherDashboard = () => {
                 
                 {/* Chart 1: Class Comparison (Bar) */}
                 <Grid item xs={12} md={6}>
-                    <Card elevation={2} sx={{ height: 400 }}>
-                        <CardContent>
-                            <Typography variant="h6" fontWeight="bold" gutterBottom>
-                                Class Comparison (Average)
-                            </Typography>
-                            <Divider sx={{ mb: 2 }} />
-                            <ResponsiveContainer width="100%" height={300}>
-                                <BarChart data={stats?.charts?.class_comparison || []}>
-                                    <CartesianGrid strokeDasharray="3 3" />
-                                    <XAxis dataKey="name" />
-                                    <YAxis domain={[0, 20]} />
-                                    <Tooltip />
-                                    <Bar dataKey="avg" fill={theme.palette.primary.main} name="Average" />
-                                </BarChart>
-                            </ResponsiveContainer>
-                        </CardContent>
-                    </Card>
+                    <ChartCard 
+                        title="Class Comparison (Average)"
+                        subtitle="Average performance by class"
+                        chartType="bar"
+                        data={stats?.charts?.class_comparison}
+                        dataKeys={['avg']}
+                        colors={[theme.palette.primary.main]}
+                        xAxisDataKey="name"
+                        yAxisDomain={[0, 20]}
+                        loading={loading}
+                        error={error}
+                    />
                 </Grid>
 
                 {/* Chart 2: Grade Distribution (Bar) */}
                 <Grid item xs={12} md={6}>
-                    <Card elevation={2} sx={{ height: 400 }}>
-                        <CardContent>
-                            <Typography variant="h6" fontWeight="bold" gutterBottom>
-                                Grade Distribution
-                            </Typography>
-                            <Divider sx={{ mb: 2 }} />
-                            <ResponsiveContainer width="100%" height={300}>
-                                <BarChart data={stats?.charts?.grade_distribution || []}>
-                                    <CartesianGrid strokeDasharray="3 3" />
-                                    <XAxis dataKey="range" />
-                                    <YAxis allowDecimals={false} />
-                                    <Tooltip />
-                                    <Bar dataKey="count" fill={theme.palette.secondary.main} name="Number of students" />
-                                </BarChart>
-                            </ResponsiveContainer>
-                        </CardContent>
-                    </Card>
+                    <ChartCard 
+                        title="Grade Distribution"
+                        subtitle="How students are performing across grades"
+                        chartType="bar"
+                        data={stats?.charts?.grade_distribution}
+                        dataKeys={['count']}
+                        colors={[theme.palette.secondary.main]}
+                        xAxisDataKey="range"
+                        yAxisAllowDecimals={false}
+                        loading={loading}
+                        error={error}
+                    />
                 </Grid>
 
                 {/* Chart 3: Pass/Fail Rate (Donut) */}
                 <Grid item xs={12} md={6}>
-                    <Card elevation={2} sx={{ height: 400 }}>
-                        <CardContent>
-                            <Typography variant="h6" fontWeight="bold" gutterBottom>
-                                Global Success Rate
-                            </Typography>
-                            <Divider sx={{ mb: 2 }} />
-                            <ResponsiveContainer width="100%" height={300}>
-                                <PieChart>
-                                    <Pie
-                                        data={stats?.charts?.pass_fail || []}
-                                        cx="50%"
-                                        cy="50%"
-                                        innerRadius={60}
-                                        outerRadius={100}
-                                        paddingAngle={5}
-                                        dataKey="value"
-                                        label={({name, percent}) => `${(percent * 100).toFixed(0)}%`}
-                                    >
-                                        {stats?.charts?.pass_fail?.map((entry, index) => (
-                                            <Cell key={`cell-${index}`} fill={index === 0 ? theme.palette.success.main : theme.palette.error.main} />
-                                        ))}
-                                    </Pie>
-                                    <Tooltip />
-                                    <Legend />
-                                </PieChart>
-                            </ResponsiveContainer>
-                        </CardContent>
-                    </Card>
+                    <ChartCard 
+                        title="Global Success Rate"
+                        subtitle="Overall pass/fail rate"
+                        chartType="pie"
+                        data={stats?.charts?.pass_fail}
+                        dataKeys={['value']}
+                        colors={[theme.palette.success.main, theme.palette.error.main]}
+                        innerRadius={60}
+                        outerRadius={100}
+                        label={({name, percent}) => `${(percent * 100).toFixed(0)}%`}
+                        loading={loading}
+                        error={error}
+                    />
                 </Grid>
 
                  {/* Chart 4: Activity Trend (Line) */}
                  <Grid item xs={12} md={6}>
-                    <Card elevation={2} sx={{ height: 400 }}>
-                        <CardContent>
-                            <Typography variant="h6" fontWeight="bold" gutterBottom>
-                                Activity and Participation Trend
-                            </Typography>
-                            <Divider sx={{ mb: 2 }} />
-                            <ResponsiveContainer width="100%" height={300}>
-                                <LineChart data={stats?.charts?.activity_trend || []}>
-                                    <CartesianGrid strokeDasharray="3 3" />
-                                    <XAxis dataKey="month" />
-                                    <YAxis />
-                                    <Tooltip />
-                                    <Legend />
-                                    <Line type="monotone" dataKey="msgs" stroke={theme.palette.primary.main} name="Messages" strokeWidth={2} />
-                                    <Line type="monotone" dataKey="files" stroke={theme.palette.secondary.main} name="Files" strokeWidth={2} />
-                                </LineChart>
-                            </ResponsiveContainer>
-                        </CardContent>
-                    </Card>
+                    <ChartCard 
+                        title="Activity and Participation Trend"
+                        subtitle="Engagement over time"
+                        chartType="line"
+                        data={stats?.charts?.activity_trend}
+                        dataKeys={['msgs', 'files']}
+                        colors={[theme.palette.primary.main, theme.palette.secondary.main]}
+                        xAxisDataKey="month"
+                        loading={loading}
+                        error={error}
+                    />
                 </Grid>
 
             </Grid>

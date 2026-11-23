@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { 
-  Box, Typography, Grid, Card, CardContent, Divider, CircularProgress, 
+  Box, Typography, Grid, Divider, CircularProgress, 
   Alert, useTheme, Avatar
 } from "@mui/material";
 import { 
@@ -12,46 +12,10 @@ import {
   NotificationsActive
 } from "@mui/icons-material";
 import { api, endpoints } from "../../services/api";
+import PageTitle from '../../components/PageTitle';
+import { StatCard, ChartCard, DashboardHeader, DashboardLoading } from '../../components/DashboardUI';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
-
-const StudentStatCard = ({ title, value, icon, color, subtitle }) => {
-  return (
-    <Card elevation={0} sx={{ height: '100%', border: '1px solid', borderColor: 'divider', borderRadius: 0 }}>
-      <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
-        <Box display="flex" alignItems="center" gap={2}>
-            <Avatar 
-                variant="square" 
-                sx={{ 
-                    bgcolor: `${color}15`, 
-                    color: color,
-                    width: 48,
-                    height: 48,
-                    borderRadius: 0
-                }}
-            >
-                {React.cloneElement(icon, { sx: { fontSize: 24 } })}
-            </Avatar>
-            <Box overflow="hidden">
-                <Typography variant="caption" color="text.secondary" fontWeight="600" sx={{ textTransform: 'uppercase', letterSpacing: 0.5 }}>
-                    {title}
-                </Typography>
-                <Typography variant="h6" fontWeight="700" sx={{ lineHeight: 1.2, my: 0.5 }}>
-                    {value}
-                </Typography>
-                {subtitle && (
-                    <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem', display: 'block', lineHeight: 1.1 }}>
-                        {subtitle}
-                    </Typography>
-                )}
-            </Box>
-        </Box>
-      </CardContent>
-    </Card>
-  );
-};
-
-import PageTitle from '../../components/PageTitle';
 
 const StudentDashboard = () => {
     const theme = useTheme();
@@ -90,7 +54,7 @@ const StudentDashboard = () => {
         fetchAllData();
     }, []);
 
-    if (loading) return <Box p={3} display="flex" justifyContent="center"><CircularProgress /></Box>;
+    if (loading) return <DashboardLoading />;
     if (error) return <Box p={3}><Alert severity="error">{error}</Alert></Box>;
 
     return (
@@ -99,54 +63,24 @@ const StudentDashboard = () => {
                 title="Student Performance Prediction System - Student Dashboard"
                 description="Track your performance, attendance and recommendations."
             />
-             <Box mb={4}>
-                <Typography variant="h4" fontWeight="800" color="primary" gutterBottom>
-                    Welcome, {legacyData?.name}
-                </Typography>
-                <Typography variant="body1" color="text.secondary">
-                    Your personal academic monitoring space.
-                </Typography>
-                <Divider sx={{ mt: 2 }} />
-            </Box>
+             <DashboardHeader
+                eyebrow="Student workspace"
+                title={`Welcome, ${legacyData?.name || 'Student'}`}
+                description="Your personal academic monitoring space."
+            />
 
-            {/* --- 4 CARDS --- */}
-            <Grid container spacing={3} mb={4}>
+            <Grid container spacing={2.5} mb={3}>
                 <Grid item xs={12} sm={6} md={3}>
-                    <StudentStatCard 
-                        title="My Average"
-                        value={newData?.cards?.my_avg?.toFixed(2) || "N/A"}
-                        icon={<School />}
-                        color={theme.palette.primary.main}
-                        subtitle="Current average"
-                    />
-                </Grid>
-                 <Grid item xs={12} sm={6} md={3}>
-                    <StudentStatCard 
-                        title="AI Status"
-                        value={newData?.cards?.status_label || "-"}
-                        icon={<SentimentSatisfiedAlt />}
-                        color={theme.palette.secondary.main}
-                        subtitle="Overall performance"
-                    />
+                    <StatCard title="My Average" value={newData?.cards?.my_avg?.toFixed(2) || 'N/A'} icon={<School />} color={theme.palette.primary.main} subtitle="Current average" />
                 </Grid>
                 <Grid item xs={12} sm={6} md={3}>
-                    <StudentStatCard 
-                        title="Attendance"
-                        value={`${newData?.cards?.attendance_rate}%` || "-"}
-                        icon={<CheckCircle />}
-                        color={theme.palette.success.main}
-                        subtitle="Attendance rate"
-                    />
+                    <StatCard title="AI Status" value={newData?.cards?.status_label || '-'} icon={<SentimentSatisfiedAlt />} color={theme.palette.secondary.main} subtitle="Overall performance" />
                 </Grid>
-               
                 <Grid item xs={12} sm={6} md={3}>
-                    <StudentStatCard 
-                        title="Warnings"
-                        value={newData?.cards?.alert_count || 0}
-                        icon={<NotificationsActive />}
-                        color={theme.palette.warning.main}
-                        subtitle="Active alerts"
-                    />
+                    <StatCard title="Attendance" value={`${newData?.cards?.attendance_rate ?? 0}%`} icon={<CheckCircle />} color="#10b981" subtitle="Attendance rate" />
+                </Grid>
+                <Grid item xs={12} sm={6} md={3}>
+                    <StatCard title="Warnings" value={newData?.cards?.alert_count || 0} icon={<NotificationsActive />} color="#f5a524" subtitle="Active alerts" />
                 </Grid>
             </Grid>
 
@@ -155,101 +89,93 @@ const StudentDashboard = () => {
                 
                 {/* Chart 1: Performance Trend (Line - Legacy) */}
                 <Grid item xs={12} md={6}>
-                    <Card elevation={2} sx={{ height: 400 }}>
-                        <CardContent>
-                            <Typography variant="h6" fontWeight="bold" gutterBottom>
-                                Grade Trend
-                            </Typography>
-                            <Divider sx={{ mb: 2 }} />
-                             <ResponsiveContainer width="100%" height={300}>
-                                <LineChart data={legacyData?.monthlyPerformance || []}>
-                                    <CartesianGrid strokeDasharray="3 3" />
-                                    <XAxis dataKey="month" />
-                                    <YAxis domain={[0, 20]} />
-                                    <Tooltip />
-                                    <Line type="monotone" dataKey="average" stroke={theme.palette.primary.main} strokeWidth={3} dot={{r:4}} />
-                                </LineChart>
-                            </ResponsiveContainer>
-                        </CardContent>
-                    </Card>
+                    <ChartCard elevation={2} sx={{ height: 400 }}>
+                        <Typography variant="h6" fontWeight="bold" gutterBottom>
+                            Grade Trend
+                        </Typography>
+                        <Divider sx={{ mb: 2 }} />
+                         <ResponsiveContainer width="100%" height={300}>
+                            <LineChart data={legacyData?.monthlyPerformance || []}>
+                                <CartesianGrid strokeDasharray="3 3" />
+                                <XAxis dataKey="month" />
+                                <YAxis domain={[0, 20]} />
+                                <Tooltip />
+                                <Line type="monotone" dataKey="average" stroke={theme.palette.primary.main} strokeWidth={3} dot={{r:4}} />
+                            </LineChart>
+                        </ResponsiveContainer>
+                    </ChartCard>
                 </Grid>
 
                 {/* Chart 2: Skills Radar (Radar - New) */}
                 <Grid item xs={12} md={6}>
-                    <Card elevation={2} sx={{ height: 400 }}>
-                        <CardContent>
-                            <Typography variant="h6" fontWeight="bold" gutterBottom>
-                                Me vs Class Average
-                            </Typography>
-                            <Divider sx={{ mb: 2 }} />
-                            <ResponsiveContainer width="100%" height={300}>
-                                <BarChart data={newData?.charts?.radar_data || []} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-                                    <CartesianGrid strokeDasharray="3 3" />
-                                    <XAxis dataKey="subject" tick={{ fontSize: 12 }} interval={0} />
-                                    <YAxis domain={[0, 20]} />
-                                    <Tooltip 
-                                        formatter={(value, name) => [value, name === 'Me' ? 'My Grade' : 'Class Average']}
-                                        contentStyle={{ borderRadius: 8 }}
-                                    />
-                                    <Legend formatter={(value) => value === 'Me' ? 'My Grade' : 'Class Average'} />
-                                    <Bar dataKey="Me" fill={theme.palette.primary.main} radius={[4, 4, 0, 0]} />
-                                    <Bar dataKey="Class" fill={theme.palette.secondary.main} radius={[4, 4, 0, 0]} />
-                                </BarChart>
-                            </ResponsiveContainer>
-                        </CardContent>
-                    </Card>
+                    <ChartCard elevation={2} sx={{ height: 400 }}>
+                        <Typography variant="h6" fontWeight="bold" gutterBottom>
+                            Me vs Class Average
+                        </Typography>
+                        <Divider sx={{ mb: 2 }} />
+                        <ResponsiveContainer width="100%" height={300}>
+                            <BarChart data={newData?.charts?.radar_data || []} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                                <CartesianGrid strokeDasharray="3 3" />
+                                <XAxis dataKey="subject" tick={{ fontSize: 12 }} interval={0} />
+                                <YAxis domain={[0, 20]} />
+                                <Tooltip 
+                                    formatter={(value, name) => [value, name === 'Me' ? 'My Grade' : 'Class Average']}
+                                    contentStyle={{ borderRadius: 8 }}
+                                />
+                                <Legend formatter={(value) => value === 'Me' ? 'My Grade' : 'Class Average'} />
+                                <Bar dataKey="Me" fill={theme.palette.primary.main} radius={[4, 4, 0, 0]} />
+                                <Bar dataKey="Class" fill={theme.palette.secondary.main} radius={[4, 4, 0, 0]} />
+                            </BarChart>
+                        </ResponsiveContainer>
+                    </ChartCard>
                 </Grid>
 
                 {/* Chart 3: Subject Breakdown (Pie - Legacy) */}
                 <Grid item xs={12} md={6}>
-                    <Card elevation={2} sx={{ height: 400 }}>
-                         <CardContent>
-                            <Typography variant="h6" fontWeight="bold" gutterBottom>
-                                Performance by Subject
-                            </Typography>
-                            <Divider sx={{ mb: 2 }} />
-                             <ResponsiveContainer width="100%" height={300}>
-                                <PieChart>
-                                    <Pie
-                                        data={legacyData?.subjectPerformance || []}
-                                        cx="50%"
-                                        cy="50%"
-                                        innerRadius={60}
-                                        outerRadius={100}
-                                        dataKey="value"
-                                        label={({name, value}) => `${name}: ${value}`}
-                                    >
-                                        {legacyData?.subjectPerformance?.map((entry, index) => (
-                                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                                        ))}
-                                    </Pie>
-                                    <Tooltip />
-                                </PieChart>
-                            </ResponsiveContainer>
-                        </CardContent>
-                    </Card>
+                    <ChartCard elevation={2} sx={{ height: 400 }}>
+                         <Typography variant="h6" fontWeight="bold" gutterBottom>
+                            Performance by Subject
+                        </Typography>
+                        <Divider sx={{ mb: 2 }} />
+                         <ResponsiveContainer width="100%" height={300}>
+                            <PieChart>
+                                <Pie
+                                    data={legacyData?.subjectPerformance || []}
+                                    cx="50%"
+                                    cy="50%"
+                                    innerRadius={60}
+                                    outerRadius={100}
+                                    dataKey="value"
+                                    label={({name, value}) => `${name}: ${value}`}
+                                >
+                                    {legacyData?.subjectPerformance?.map((entry, index) => (
+                                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                    ))}
+                                </Pie>
+                                <Tooltip />
+                            </PieChart>
+                        </ResponsiveContainer>
+                    </ChartCard>
                 </Grid>
 
                 {/* Chart 4: Monthly Attendance (Bar - New) */}
                 <Grid item xs={12} md={6}>
-                    <Card elevation={2} sx={{ height: 400 }}>
-                        <CardContent>
-                            <Typography variant="h6" fontWeight="bold" gutterBottom>
-                                Attendance History
-                            </Typography>
-                            <Divider sx={{ mb: 2 }} />
-                             <ResponsiveContainer width="100%" height={300}>
-                                <BarChart data={newData?.charts?.monthly_attendance || []}>
-                                    <CartesianGrid strokeDasharray="3 3" />
-                                    <XAxis dataKey="name" />
-                                    <YAxis />
-                                    <Tooltip />
-                                    <Bar dataKey="present" stackId="a" fill={theme.palette.success.main} name="Present" />
-                                    <Bar dataKey="absent" stackId="a" fill={theme.palette.error.main} name="Absent" />
-                                </BarChart>
-                            </ResponsiveContainer>
-                        </CardContent>
-                    </Card>
+                    <ChartCard elevation={2} sx={{ height: 400 }}>
+                        <Typography variant="h6" fontWeight="bold" gutterBottom>
+                            Attendance History
+                        </Typography>
+                        <Divider sx={{ mb: 2 }} />
+                         <ResponsiveContainer width="100%" height={300}>
+                            <BarChart data={newData?.charts?.monthly_attendance || []}>
+                                <CartesianGrid strokeDasharray="3 3" />
+                                <XAxis dataKey="name" />
+                                <YAxis />
+                                <Tooltip />
+                                <Bar dataKey="present" stackId="a" fill={theme.palette.success.main} name="Present" />
+                                <Bar dataKey="absent" stackId="a" fill={theme.palette.error.main} name="Absent" />
+                            </BarChart>
+                        </ResponsiveContainer>
+                    </ChartCard>
                 </Grid>
 
             </Grid>

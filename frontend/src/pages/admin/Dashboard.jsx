@@ -1,259 +1,256 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  Box, Typography, Grid, Card, CardContent, Divider, CircularProgress, 
-  Snackbar, Alert, useTheme, Avatar, LinearProgress
-} from '@mui/material';
-import { 
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  PieChart, Pie, Cell, AreaChart, Area
-} from 'recharts';
+import React, { useState, useEffect } from "react";
+import { Box, Grid, CircularProgress, Alert, useTheme } from "@mui/material";
 import {
-  School as SchoolIcon,
-  TrendingUp as TrendingUpIcon,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  AreaChart,
+  Area,
+} from "recharts";
+import {
   Warning as WarningIcon,
   CheckCircle as CheckCircleIcon,
   Groups as GroupsIcon,
-  Timeline as TimelineIcon,
-  Speed as SpeedIcon
-} from '@mui/icons-material';
+  Speed as SpeedIcon,
+} from "@mui/icons-material";
+import { api, endpoints } from "../../services/api";
+import PageTitle from "../../components/PageTitle";
+import {
+  StatCard,
+  ChartCard,
+  DashboardHeader,
+  DashboardLoading,
+} from "../../components/DashboardUI";
 
-import { api, endpoints } from '../../services/api';
-import PageTitle from '../../components/PageTitle';
-
-const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
-
-const StatCard = ({ title, value, icon, color, subtitle }) => {
-  return (
-    <Card elevation={0} sx={{ height: '100%', border: '1px solid', borderColor: 'divider', borderRadius: 0 }}>
-      <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
-        <Box display="flex" alignItems="center" gap={2}>
-            <Avatar 
-                variant="square" 
-                sx={{ 
-                    bgcolor: `${color}15`, 
-                    color: color,
-                    width: 48,
-                    height: 48,
-                    borderRadius: 0
-                }}
-            >
-                {React.cloneElement(icon, { sx: { fontSize: 24 } })}
-            </Avatar>
-            <Box overflow="hidden">
-                <Typography variant="caption" color="text.secondary" fontWeight="600" sx={{ textTransform: 'uppercase', letterSpacing: 0.5 }}>
-                    {title}
-                </Typography>
-                <Typography variant="h5" fontWeight="700" noWrap title={value} sx={{ lineHeight: 1.2, my: 0.5 }}>
-                    {value}
-                </Typography>
-                {subtitle && (
-                    <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem', display: 'block' }} noWrap>
-                        {subtitle}
-                    </Typography>
-                )}
-            </Box>
-        </Box>
-      </CardContent>
-    </Card>
-  );
-};
+const COLORS = ["#10cfc9", "#526df5", "#f5a524", "#ef5da8", "#8884d8"];
 
 const AdminDashboard = () => {
-    const theme = useTheme();
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
-    const [stats, setStats] = useState(null); // Unified stats
-    const [subjectStats, setSubjectStats] = useState([]); // Separate endpoint
+  const theme = useTheme();
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [stats, setStats] = useState(null);
+  const [subjectStats, setSubjectStats] = useState([]);
 
-    useEffect(() => {
-        const fetchAllData = async () => {
-            setLoading(true);
-            try {
-                // 1. Fetch Unified Dashboard Stats
-                const dashboardRes = await api.get(endpoints.dashboard.admin);
-                const dashboardData = await dashboardRes.json();
+  useEffect(() => {
+    const fetchAllData = async () => {
+      setLoading(true);
+      try {
+        const dashboardRes = await api.get(endpoints.dashboard.admin);
+        const dashboardData = await dashboardRes.json();
+        if (!dashboardData.success)
+          throw new Error(dashboardData.message || "Failed to load dashboard");
+        setStats(dashboardData);
 
-                if (dashboardData.success) {
-                    setStats(dashboardData);
-                } else {
-                    throw new Error(dashboardData.message || "Failed to load dashboard");
-                }
+        const subjectsRes = await api.get(endpoints.stats.subjectSuccessRate);
+        setSubjectStats(await subjectsRes.json());
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchAllData();
+  }, []);
 
-                // 2. Fetch Subject Success Rate (Existing endpoint)
-                const subjectsRes = await api.get(endpoints.stats.subjectSuccessRate);
-                const subjectsData = await subjectsRes.json();
-                setSubjectStats(subjectsData);
-
-            } catch (err) {
-                console.error("Dashboard Error:", err);
-                setError(err.message);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchAllData();
-    }, []);
-
-    if (loading) return <Box p={3} display="flex" justifyContent="center"><CircularProgress /></Box>;
-    if (error) return <Box p={3}><Alert severity="error">{error}</Alert></Box>;
-
+  if (loading) return <DashboardLoading />;
+  if (error)
     return (
-        <Box>
-            <PageTitle
-                title="Student Performance Prediction System - Administration"
-                description="System overview and academic statistics."
-            />
-            <Box mb={4}>
-                <Typography variant="h4" fontWeight="800" color="primary" gutterBottom>
-                    Admin Dashboard
-                </Typography>
-                <Typography variant="body1" color="text.secondary">
-                    Overview of academic performance and attendance.
-                </Typography>
-                <Divider sx={{ mt: 2 }} />
-            </Box>
-
-            {/* --- 4 INFO CARDS --- */}
-            <Grid container spacing={3} mb={4}>
-                <Grid item xs={12} sm={6} md={3}>
-                    <StatCard 
-                        title="Total Students"
-                        value={stats?.cards?.total_students || 0}
-                        icon={<GroupsIcon />}
-                        color={theme.palette.primary.main}
-                        subtitle="Enrolled this year"
-                    />
-                </Grid>
-                <Grid item xs={12} sm={6} md={3}>
-                    <StatCard 
-                        title="Global Average"
-                        value={stats?.cards?.global_avg?.toFixed(2) || "N/A"}
-                        icon={<SpeedIcon />}
-                        color={theme.palette.info.main}
-                        subtitle="Across all subjects"
-                    />
-                </Grid>
-                <Grid item xs={12} sm={6} md={3}>
-                    <StatCard 
-                        title="Attendance Rate"
-                        value={`${stats?.cards?.attendance_rate}%`}
-                        icon={<CheckCircleIcon />}
-                        color={theme.palette.success.main}
-                        subtitle="Overall average"
-                    />
-                </Grid>
-                <Grid item xs={12} sm={6} md={3}>
-                    <StatCard 
-                        title="At-Risk Students"
-                        value={stats?.cards?.at_risk_count || 0}
-                        icon={<WarningIcon />}
-                        color={theme.palette.error.main}
-                        subtitle="Need attention"
-                    />
-                </Grid>
-            </Grid>
-
-            {/* --- 4 CHARTS (GRID 2x2) --- */}
-            <Grid container spacing={3}>
-                
-                {/* Chart 1: Global Performance Distribution (Pie) */}
-                <Grid item xs={12} md={6}>
-                    <Card elevation={2} sx={{ height: 400 }}>
-                        <CardContent>
-                            <Typography variant="h6" fontWeight="bold" gutterBottom>
-                                AI Performance Distribution
-                            </Typography>
-                            <Divider sx={{ mb: 2 }} />
-                            <ResponsiveContainer width="100%" height={300}>
-                                <PieChart>
-                                    <Pie
-                                        data={stats?.charts?.performance_distribution || []}
-                                        cx="50%"
-                                        cy="50%"
-                                        innerRadius={60}
-                                        outerRadius={100}
-                                        paddingAngle={5}
-                                        dataKey="value"
-                                        label={({name, percent}) => `${name} ${(percent * 100).toFixed(0)}%`}
-                                    >
-                                        {stats?.charts?.performance_distribution?.map((entry, index) => (
-                                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                                        ))}
-                                    </Pie>
-                                    <Tooltip />
-                                </PieChart>
-                            </ResponsiveContainer>
-                        </CardContent>
-                    </Card>
-                </Grid>
-
-                {/* Chart 2: Attendance Trends (Area) */}
-                <Grid item xs={12} md={6}>
-                    <Card elevation={2} sx={{ height: 400 }}>
-                        <CardContent>
-                            <Typography variant="h6" fontWeight="bold" gutterBottom>
-                                Monthly Attendance Trend
-                            </Typography>
-                            <Divider sx={{ mb: 2 }} />
-                            <ResponsiveContainer width="100%" height={300}>
-                                <AreaChart data={stats?.charts?.attendance_trend || []}>
-                                    <CartesianGrid strokeDasharray="3 3" />
-                                    <XAxis dataKey="month" />
-                                    <YAxis domain={[0, 100]} />
-                                    <Tooltip />
-                                    <Area type="monotone" dataKey="rate" stroke={theme.palette.success.main} fill={theme.palette.success.light} />
-                                </AreaChart>
-                            </ResponsiveContainer>
-                        </CardContent>
-                    </Card>
-                </Grid>
-
-                {/* Chart 3: Subject Success Rate (Bar - Existing) */}
-                <Grid item xs={12} md={6}>
-                    <Card elevation={2} sx={{ height: 400 }}>
-                        <CardContent>
-                            <Typography variant="h6" fontWeight="bold" gutterBottom>
-                                Success Rate by Subject
-                            </Typography>
-                            <Divider sx={{ mb: 2 }} />
-                            <ResponsiveContainer width="100%" height={300}>
-                                <BarChart data={subjectStats}>
-                                    <CartesianGrid strokeDasharray="3 3" />
-                                    <XAxis dataKey="subject" tick={false} /> {/* Hide labels if too long */}
-                                    <YAxis domain={[0, 20]} />
-                                    <Tooltip />
-                                    <Bar dataKey="success_rate" fill={theme.palette.primary.main} name="Average Grade" />
-                                </BarChart>
-                            </ResponsiveContainer>
-                        </CardContent>
-                    </Card>
-                </Grid>
-
-                {/* Chart 4: Teacher Workload (Bar - Horizontal) */}
-                 <Grid item xs={12} md={6}>
-                    <Card elevation={2} sx={{ height: 400 }}>
-                        <CardContent>
-                            <Typography variant="h6" fontWeight="bold" gutterBottom>
-                                Teacher Workload (Top 5)
-                            </Typography>
-                            <Divider sx={{ mb: 2 }} />
-                            <ResponsiveContainer width="100%" height={300}>
-                                <BarChart layout="vertical" data={stats?.charts?.teacher_workload || []}>
-                                    <CartesianGrid strokeDasharray="3 3" />
-                                    <XAxis type="number" />
-                                    <YAxis dataKey="name" type="category" width={100} />
-                                    <Tooltip />
-                                    <Bar dataKey="students" fill={theme.palette.secondary.main} name="Students" />
-                                </BarChart>
-                            </ResponsiveContainer>
-                        </CardContent>
-                    </Card>
-                </Grid>
-
-            </Grid>
-        </Box>
+      <Box p={3}>
+        <Alert severity="error">{error}</Alert>
+      </Box>
     );
+
+  const tooltipStyle = {
+    borderRadius: 10,
+    border: "1px solid rgba(7,29,53,0.08)",
+    boxShadow: "0 8px 24px rgba(7,29,53,0.08)",
+  };
+
+  return (
+    <Box>
+      <PageTitle
+        title="Student Performance Prediction System - Administration"
+        description="System overview and academic statistics."
+      />
+      <DashboardHeader
+        eyebrow="Administration overview"
+        title="Admin Dashboard"
+        description="Monitor academic performance, attendance and institutional activity."
+      />
+
+      <Grid container spacing={2.5} mb={3}>
+        <Grid item xs={12} sm={6} md={3}>
+          <StatCard
+            title="Total Students"
+            value={stats?.cards?.total_students || 0}
+            icon={<GroupsIcon />}
+            color={theme.palette.primary.main}
+            subtitle="Enrolled this year"
+          />
+        </Grid>
+        <Grid item xs={12} sm={6} md={3}>
+          <StatCard
+            title="Global Average"
+            value={stats?.cards?.global_avg?.toFixed(2) || "N/A"}
+            icon={<SpeedIcon />}
+            color="#526df5"
+            subtitle="Across all subjects"
+          />
+        </Grid>
+        <Grid item xs={12} sm={6} md={3}>
+          <StatCard
+            title="Attendance Rate"
+            value={`${stats?.cards?.attendance_rate ?? 0}%`}
+            icon={<CheckCircleIcon />}
+            color="#10b981"
+            subtitle="Overall average"
+          />
+        </Grid>
+        <Grid item xs={12} sm={6} md={3}>
+          <StatCard
+            title="At-Risk Students"
+            value={stats?.cards?.at_risk_count || 0}
+            icon={<WarningIcon />}
+            color="#ef4444"
+            subtitle="Need attention"
+          />
+        </Grid>
+      </Grid>
+
+      <Grid container spacing={2.5}>
+        <Grid item xs={12} md={6}>
+          <ChartCard
+            title="AI Performance Distribution"
+            subtitle="Current prediction categories"
+          >
+            <ResponsiveContainer width="100%" height={300}>
+              <PieChart>
+                <Pie
+                  data={stats?.charts?.performance_distribution || []}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={62}
+                  outerRadius={104}
+                  paddingAngle={4}
+                  dataKey="value"
+                  label={({ name, percent }) =>
+                    `${name} ${(percent * 100).toFixed(0)}%`
+                  }
+                >
+                  {(stats?.charts?.performance_distribution || []).map(
+                    (entry, index) => (
+                      <Cell
+                        key={`cell-${index}`}
+                        fill={COLORS[index % COLORS.length]}
+                      />
+                    ),
+                  )}
+                </Pie>
+                <Tooltip contentStyle={tooltipStyle} />
+              </PieChart>
+            </ResponsiveContainer>
+          </ChartCard>
+        </Grid>
+        <Grid item xs={12} md={6}>
+          <ChartCard
+            title="Monthly Attendance Trend"
+            subtitle="Attendance rate over time"
+          >
+            <ResponsiveContainer width="100%" height={300}>
+              <AreaChart data={stats?.charts?.attendance_trend || []}>
+                <defs>
+                  <linearGradient
+                    id="attendanceFill"
+                    x1="0"
+                    y1="0"
+                    x2="0"
+                    y2="1"
+                  >
+                    <stop offset="5%" stopColor="#10b981" stopOpacity={0.28} />
+                    <stop offset="95%" stopColor="#10b981" stopOpacity={0.02} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid stroke="#edf1f4" vertical={false} />
+                <XAxis dataKey="month" axisLine={false} tickLine={false} />
+                <YAxis domain={[0, 100]} axisLine={false} tickLine={false} />
+                <Tooltip contentStyle={tooltipStyle} />
+                <Area
+                  type="monotone"
+                  dataKey="rate"
+                  stroke="#10b981"
+                  strokeWidth={3}
+                  fill="url(#attendanceFill)"
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          </ChartCard>
+        </Grid>
+        <Grid item xs={12} md={6}>
+          <ChartCard
+            title="Success Rate by Subject"
+            subtitle="Average grade for each subject"
+          >
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={subjectStats}>
+                <CartesianGrid stroke="#edf1f4" vertical={false} />
+                <XAxis
+                  dataKey="subject"
+                  tick={false}
+                  axisLine={false}
+                  tickLine={false}
+                />
+                <YAxis domain={[0, 20]} axisLine={false} tickLine={false} />
+                <Tooltip contentStyle={tooltipStyle} />
+                <Bar
+                  dataKey="success_rate"
+                  fill="#10cfc9"
+                  radius={[8, 8, 0, 0]}
+                  name="Average Grade"
+                />
+              </BarChart>
+            </ResponsiveContainer>
+          </ChartCard>
+        </Grid>
+        <Grid item xs={12} md={6}>
+          <ChartCard
+            title="Teacher Workload"
+            subtitle="Top five teachers by student count"
+          >
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart
+                layout="vertical"
+                data={stats?.charts?.teacher_workload || []}
+              >
+                <CartesianGrid stroke="#edf1f4" horizontal={false} />
+                <XAxis type="number" axisLine={false} tickLine={false} />
+                <YAxis
+                  dataKey="name"
+                  type="category"
+                  width={100}
+                  axisLine={false}
+                  tickLine={false}
+                />
+                <Tooltip contentStyle={tooltipStyle} />
+                <Bar
+                  dataKey="students"
+                  fill="#526df5"
+                  radius={[0, 8, 8, 0]}
+                  name="Students"
+                />
+              </BarChart>
+            </ResponsiveContainer>
+          </ChartCard>
+        </Grid>
+      </Grid>
+    </Box>
+  );
 };
 
 export default AdminDashboard;

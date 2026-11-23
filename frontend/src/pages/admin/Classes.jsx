@@ -2,12 +2,6 @@ import React, { useState, useEffect } from "react";
 import {
   Box,
   Typography,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
   Button,
   Dialog,
   DialogActions,
@@ -26,7 +20,13 @@ import {
   Snackbar,
   Divider,
   CircularProgress,
-  useTheme
+  useTheme,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
@@ -34,6 +34,11 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import SchoolIcon from "@mui/icons-material/School";
 
 import { api, endpoints } from "../../services/api";
+import {
+  ManagementHeader,
+  ManagementStat,
+  ManagementTable,
+} from "../../components/ManagementUI";
 
 const AdminClasses = () => {
   const [classes, setClasses] = useState([]);
@@ -47,6 +52,7 @@ const AdminClasses = () => {
   const [editMode, setEditMode] = useState(false);
   const [enseignants, setEnseignants] = useState([]);
   const [error, setError] = useState(null);
+  const [deleteTarget, setDeleteTarget] = useState(null);
   const theme = useTheme();
 
   // Fetch classes and enseignants from the backend
@@ -57,7 +63,7 @@ const AdminClasses = () => {
       try {
         const [classesResponse, enseignantsResponse] = await Promise.all([
           api.get(endpoints.classes.list),
-          api.get(endpoints.teachers.list)
+          api.get(endpoints.teachers.list),
         ]);
 
         const classesData = await classesResponse.json();
@@ -75,8 +81,6 @@ const AdminClasses = () => {
 
     fetchData();
   }, []);
-
-  // Rest of the existing methods (handleOpenDialog, handleCloseDialog, etc.) remain the same as in the previous version
 
   const handleOpenDialog = (classe = null) => {
     if (classe) {
@@ -156,124 +160,185 @@ const AdminClasses = () => {
     }
   };
 
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
+    await handleDelete(deleteTarget.id);
+    setDeleteTarget(null);
+  };
+
   return (
     <Box>
-      <Box sx={{ mb: 4 }}>
-        <Typography variant="h4" color="primary.main" fontWeight="bold" gutterBottom>
-          Class Management
-        </Typography>
-        <Typography variant="subtitle1" color="text.secondary" gutterBottom>
-          Manage classes and their information
-        </Typography>
-        <Divider sx={{ mt: 1, mb: 3 }} />
-      </Box>
+      <ManagementHeader
+        eyebrow="Academic structure"
+        title="Class Management"
+        description="Create and organize classes, and assign responsible teachers."
+        action={
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={() => handleOpenDialog()}
+            sx={{
+              minHeight: 48,
+              px: 2.5,
+              borderRadius: "12px",
+              bgcolor: "primary.main",
+              color: "#071d35",
+              fontWeight: 850,
+              boxShadow: "none",
+              "&:hover": {
+                bgcolor: "#56e0da",
+                boxShadow: "0 10px 24px rgba(16,207,201,0.22)",
+              },
+            }}
+          >
+            New Class
+          </Button>
+        }
+      />
 
-      {/* Loading indicator */}
-      {loading && (
-        <Box sx={{ display: 'flex', justifyContent: 'center', my: 4 }}>
-          <CircularProgress />
-        </Box>
-      )}
-
-      {/* Error message */}
       {error && (
-        <Snackbar open={!!error} autoHideDuration={6000} onClose={() => setError(null)}>
-          <Alert onClose={() => setError(null)} severity="error" sx={{ width: '100%' }}>
+        <Snackbar
+          open={!!error}
+          autoHideDuration={6000}
+          onClose={() => setError(null)}
+        >
+          <Alert
+            onClose={() => setError(null)}
+            severity="error"
+            sx={{ width: "100%" }}
+          >
             {error}
           </Alert>
         </Snackbar>
       )}
 
-      {/* Statistics Cards */}
-      <Grid container spacing={3} sx={{ mb: 4 }}>
+      <Grid container spacing={2.5} sx={{ mb: 3 }}>
         <Grid item xs={12} sm={6} md={3}>
-          <Card 
-            elevation={2}
-            sx={{ 
-              height: 140, 
-              borderLeft: `4px solid ${theme.palette.primary.main}`,
-              transition: "transform 0.3s, box-shadow 0.3s",
-              "&:hover": {
-                transform: "translateY(-5px)",
-                boxShadow: theme.shadows[4]
-              }
-            }}
-          >
-            <CardContent sx={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-              <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <Typography variant="subtitle2" color="text.secondary">
-                  Total Classes
-                </Typography>
-                <SchoolIcon 
-                  fontSize="medium" 
-                  sx={{ color: theme.palette.primary.main }} 
-                />
-              </Box>
-              <Box>
-                <Typography variant="h3" sx={{ fontWeight: "bold", color: theme.palette.primary.main }}>
-                  {classes.length}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Existing classes
-                </Typography>
-              </Box>
-            </CardContent>
-          </Card>
+          <ManagementStat
+            title="Total Classes"
+            value={loading ? "—" : classes.length}
+            icon={<SchoolIcon />}
+            color="#10cfc9"
+            subtitle="Existing academic classes"
+          />
         </Grid>
       </Grid>
 
-      {/* Action Button */}
-      <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 3 }}>
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={() => handleOpenDialog()}
-        >
-          New Class
-        </Button>
-      </Box>
-
-      {/* Table of classes */}
-      <Card elevation={2}>
-        <CardContent sx={{ p: 0 }}>
+      <ManagementTable
+        title="All classes"
+        subtitle={`${classes.length} class${
+          classes.length === 1 ? "" : "es"
+        } in the institution`}
+      >
+        {loading ? (
+          <Box
+            sx={{
+              height: 300,
+              display: "grid",
+              placeItems: "center",
+            }}
+          >
+            <CircularProgress />
+          </Box>
+        ) : (
           <TableContainer>
             <Table>
               <TableHead>
-                <TableRow>
-                  <TableCell sx={{ fontWeight: 'bold' }}>Class Name</TableCell>
-                  <TableCell align="center" sx={{ fontWeight: 'bold' }}>Responsible Teacher</TableCell>
-                  <TableCell align="center" sx={{ fontWeight: 'bold' }}>Actions</TableCell>
+                <TableRow sx={{ bgcolor: "rgba(7,29,53,0.025)" }}>
+                  <TableCell
+                    sx={{
+                      fontWeight: 850,
+                      color: "#071d35",
+                      py: 1.5,
+                    }}
+                  >
+                    Class Name
+                  </TableCell>
+                  <TableCell
+                    align="center"
+                    sx={{
+                      fontWeight: 850,
+                      color: "#071d35",
+                      py: 1.5,
+                    }}
+                  >
+                    Responsible Teacher
+                  </TableCell>
+                  <TableCell
+                    align="right"
+                    sx={{
+                      fontWeight: 850,
+                      color: "#071d35",
+                      py: 1.5,
+                    }}
+                  >
+                    Actions
+                  </TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
-                {classes && classes.length > 0 ? (
+                {classes.length > 0 ? (
                   classes.map((classe) => (
-                    <TableRow 
+                    <TableRow
                       key={classe.id}
                       hover
-                      sx={{ 
-                        '&:last-child td, &:last-child th': { border: 0 },
-                        transition: "background-color 0.2s",
+                      sx={{
+                        "&:last-child td": { border: 0 },
+                        "& td": { borderColor: "rgba(7,29,53,0.06)" },
                       }}
                     >
-                      <TableCell>{classe.nom}</TableCell>
-                      <TableCell align="center">
-                        {classe.enseignant_responsable
-                          ? `${classe.enseignant_responsable.first_name} ${classe.enseignant_responsable.last_name}`
-                          : "Inconnu"}
+                      <TableCell sx={{ fontWeight: 750 }}>
+                        {classe.nom}
                       </TableCell>
                       <TableCell align="center">
+                        {classe.enseignant_responsable ? (
+                          <Typography
+                            component="span"
+                            sx={{
+                              px: 1.25,
+                              py: 0.55,
+                              borderRadius: "8px",
+                              bgcolor: "rgba(16,207,201,0.10)",
+                              color: "#087a76",
+                              fontWeight: 700,
+                              fontSize: "0.82rem",
+                            }}
+                          >
+                            {classe.enseignant_responsable.first_name}{" "}
+                            {classe.enseignant_responsable.last_name}
+                          </Typography>
+                        ) : (
+                          <Typography
+                            color="text.secondary"
+                            sx={{ fontSize: "0.82rem" }}
+                          >
+                            Not assigned
+                          </Typography>
+                        )}
+                      </TableCell>
+                      <TableCell align="right">
                         <IconButton
-                          color="primary"
                           onClick={() => handleOpenDialog(classe)}
-                          size="small"
+                          sx={{
+                            mr: 0.5,
+                            bgcolor: "rgba(82,109,245,0.08)",
+                            color: "#526df5",
+                            "&:hover": {
+                              bgcolor: "rgba(82,109,245,0.16)",
+                            },
+                          }}
                         >
                           <EditIcon fontSize="small" />
                         </IconButton>
                         <IconButton
-                          color="error"
-                          onClick={() => handleDelete(classe.id)}
-                          size="small"
+                          onClick={() => setDeleteTarget(classe)}
+                          sx={{
+                            bgcolor: "rgba(239,68,68,0.08)",
+                            color: "#ef4444",
+                            "&:hover": {
+                              bgcolor: "rgba(239,68,68,0.16)",
+                            },
+                          }}
                         >
                           <DeleteIcon fontSize="small" />
                         </IconButton>
@@ -282,7 +347,11 @@ const AdminClasses = () => {
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={3} align="center">
+                    <TableCell
+                      colSpan={3}
+                      align="center"
+                      sx={{ py: 7, color: "text.secondary" }}
+                    >
                       No classes available
                     </TableCell>
                   </TableRow>
@@ -290,21 +359,29 @@ const AdminClasses = () => {
               </TableBody>
             </Table>
           </TableContainer>
-        </CardContent>
-      </Card>
+        )}
+      </ManagementTable>
 
-      {/* Dialog for adding/editing a class (remains mostly unchanged) */}
       <Dialog
         open={openDialog}
         onClose={handleCloseDialog}
-        maxWidth="md"
+        maxWidth="sm"
         fullWidth
+        PaperProps={{ sx: { borderRadius: "18px" } }}
       >
-        <DialogTitle>
-          {editMode ? "Edit Class" : "Create New Class"}
+        <DialogTitle sx={{ px: 3, pt: 3, pb: 1.5 }}>
+          <Typography
+            sx={{
+              color: "#071d35",
+              fontWeight: 850,
+              fontSize: "1.25rem",
+            }}
+          >
+            {editMode ? "Edit Class" : "Create New Class"}
+          </Typography>
         </DialogTitle>
-        <DialogContent>
-          <Grid container spacing={2} sx={{ mt: 1 }}>
+        <DialogContent sx={{ px: 3, pb: 1 }}>
+          <Grid container spacing={2} sx={{ mt: 0.25 }}>
             <Grid item xs={12} sm={6}>
               <TextField
                 name="nom"
@@ -323,6 +400,7 @@ const AdminClasses = () => {
                 <Select
                   labelId="enseignant-label"
                   name="enseignant_responsable"
+                  label="Responsible Teacher"
                   value={formData.enseignant_responsable || ""}
                   onChange={handleInputChange}
                 >
@@ -336,10 +414,97 @@ const AdminClasses = () => {
             </Grid>
           </Grid>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseDialog}>Cancel</Button>
-          <Button onClick={handleSubmit} variant="contained">
+        <DialogActions sx={{ px: 3, py: 2.5 }}>
+          <Button
+            onClick={handleCloseDialog}
+            sx={{ fontWeight: 750, color: "text.secondary" }}
+          >
+            Cancel
+          </Button>
+
+          {/* <Button
+            variant="contained"
+            onClick={() => handleOpenDialog()}
+            sx={{
+              minHeight: 48,
+              px: 2.5,
+              borderRadius: "12px",
+              bgcolor: "primary.main",
+              color: "#071d35",
+              fontWeight: 850,
+              boxShadow: "none",
+              "&:hover": {
+                bgcolor: "#56e0da",
+                boxShadow: "0 10px 24px rgba(16,207,201,0.22)",
+              },
+            }}
+          >
+            New Class
+          </Button> */}
+          <Button
+            onClick={handleSubmit}
+            variant="contained"
+            sx={{
+              minHeight: 48,
+              px: 2.5,
+              borderRadius: "12px",
+              bgcolor: "primary.main",
+              color: "#071d35",
+              fontWeight: 850,
+              boxShadow: "none",
+              "&:hover": {
+                bgcolor: "#56e0da",
+                boxShadow: "0 10px 24px rgba(16,207,201,0.22)",
+              },
+            }}
+          >
             {editMode ? "Update" : "Create"}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog
+        open={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{ sx: { borderRadius: "18px" } }}
+      >
+        <DialogTitle sx={{ px: 3, pt: 3, pb: 1.5 }}>
+          <Typography
+            sx={{
+              color: "#071d35",
+              fontWeight: 850,
+              fontSize: "1.25rem",
+            }}
+          >
+            Confirm Deletion
+          </Typography>
+        </DialogTitle>
+        <DialogContent sx={{ px: 3, pb: 1 }}>
+          <Typography
+            sx={{ color: "text.secondary", mb: 2 }}
+          >{`Are you sure you want to delete the class "${deleteTarget?.nom}"? This action cannot be undone.`}</Typography>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, py: 2.5 }}>
+          <Button
+            onClick={() => setDeleteTarget(null)}
+            sx={{ fontWeight: 750, color: "text.secondary" }}
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={confirmDelete}
+            variant="contained"
+            sx={{
+              minWidth: 110,
+              borderRadius: "10px",
+              bgcolor: "#d32f2f",
+              fontWeight: 800,
+              "&:hover": { bgcolor: "#c62828" },
+            }}
+          >
+            Delete
           </Button>
         </DialogActions>
       </Dialog>

@@ -33,12 +33,15 @@ import GetAppIcon from "@mui/icons-material/GetApp";
 import PersonIcon from "@mui/icons-material/Person";
 
 import { api, endpoints } from "../../services/api";
+import { DeleteConfirmationDialog, ManagementHeader, ManagementStat, ManagementTable } from "../../components/ManagementUI";
+
 
 const AdminEtudiants = () => {
   const [etudiants, setEtudiants] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filteredEtudiants, setFilteredEtudiants] = useState([]);
   const [openDialog, setOpenDialog] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState(null);
   const [formData, setFormData] = useState({
     id: null,
     nom: "",
@@ -403,7 +406,7 @@ const AdminEtudiants = () => {
                         </IconButton>
                         <IconButton
                           color="error"
-                          onClick={() => handleDelete(etudiant.id)}
+                          onClick={() => setDeleteTarget(etudiant)}
                           size="small"
                         >
                           <DeleteIcon fontSize="small" />
@@ -513,6 +516,17 @@ const AdminEtudiants = () => {
           </Button>
         </DialogActions>
       </Dialog>
+    </Box>
+  );
+};
+
+      <DeleteConfirmationDialog
+        open={!!deleteTarget}
+        title="Delete Student"
+        name={deleteTarget ? `${deleteTarget.first_name} ${deleteTarget.last_name}` : ''}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={async () => { await handleDelete(deleteTarget.id); setDeleteTarget(null); }}
+      />
     </Box>
   );
 };

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React from "react";
 import List from "@mui/material/List";
 import Divider from "@mui/material/Divider";
 import IconButton from "@mui/material/IconButton";
@@ -8,7 +8,7 @@ import ListItem from "@mui/material/ListItem";
 import ListItemButton from "@mui/material/ListItemButton";
 import ListItemIcon from "@mui/material/ListItemIcon";
 import ListItemText from "@mui/material/ListItemText";
-import { Avatar, styled, useTheme, Typography, Tooltip } from "@mui/material";
+import { Avatar, Box, Chip, Divider as MuiDivider, styled, useTheme, Typography, Tooltip, Stack } from "@mui/material";
 import MuiDrawer from "@mui/material/Drawer";
 import DashboardOutlinedIcon from "@mui/icons-material/DashboardOutlined";
 import SchoolOutlinedIcon from "@mui/icons-material/SchoolOutlined";
@@ -196,11 +196,6 @@ const Sidebar = ({ open, handleDrawerClose, pathname, variant = "permanent" }) =
   // Generate initials for the avatar (keeping this for reference)
   const initials = getInitials(name);
 
-  //  avatar background color based on role
-  const getAvatarBgColor = () => {
-    return theme.palette.primary.main;
-  };
-
   const handleItemClick = (path) => {
     navigate(path);
     if (variant === "temporary") {
@@ -209,37 +204,64 @@ const Sidebar = ({ open, handleDrawerClose, pathname, variant = "permanent" }) =
   };
 
   const renderMenuItems = (items) => {
-    return items.map((item) => (
-      <ListItem key={item.path} disablePadding sx={{ display: "block" }}>
-        <Tooltip title={open ? null : item.text} placement="left">
-          <ListItemButton
-            onClick={() => handleItemClick(item.path)}
-            sx={{
-              minHeight: 48,
-              justifyContent: open ? "initial" : "center",
-              px: 2.5,
-              bgcolor:
-                pathname === item.path
-                  ? theme.palette.mode === "dark"
-                    ? grey[800]
-                    : grey[300]
-                  : null,
-            }}
-          >
-            <ListItemIcon
+    return items.map((item) => {
+      const active = pathname === item.path;
+      return (
+        <ListItem key={item.path} disablePadding sx={{ display: "block", mb: 0.35, px: 1.25 }}>
+          <Tooltip title={open ? null : item.text} placement="right">
+            <ListItemButton
+              onClick={() => handleItemClick(item.path)}
               sx={{
-                minWidth: 0,
-                mr: open ? 3 : "auto",
-                justifyContent: "center",
+                minHeight: 48,
+                justifyContent: open ? "initial" : "center",
+                px: open ? 1.5 : 1,
+                borderRadius: "12px",
+                position: "relative",
+                color: active ? "#071d35" : "text.secondary",
+                bgcolor: active ? "rgba(16,207,201,0.14)" : "transparent",
+                transition: "all 180ms ease",
+                "&:before": active
+                  ? {
+                      content: '""',
+                      position: "absolute",
+                      left: -10,
+                      width: 4,
+                      height: 28,
+                      borderRadius: 3,
+                      bgcolor: theme.palette.primary.main,
+                    }
+                  : {},
+                "&:hover": {
+                  bgcolor: active ? "rgba(16,207,201,0.20)" : "rgba(7,29,53,0.055)",
+                  color: active ? "#071d35" : "text.primary",
+                  transform: "translateX(2px)",
+                },
               }}
             >
-              {item.icon}
-            </ListItemIcon>
-            <ListItemText primary={item.text} sx={{ opacity: open ? 1 : 0 }} />
-          </ListItemButton>
-        </Tooltip>
-      </ListItem>
-    ));
+              <ListItemIcon
+                sx={{
+                  minWidth: 0,
+                  mr: open ? 2 : "auto",
+                  justifyContent: "center",
+                  color: active ? theme.palette.primary.main : "text.secondary",
+                }}
+              >
+                {item.icon}
+              </ListItemIcon>
+              <ListItemText
+                primary={item.text}
+                primaryTypographyProps={{
+                  fontSize: "0.88rem",
+                  fontWeight: active ? 800 : 650,
+                  noWrap: true,
+                }}
+                sx={{ opacity: open ? 1 : 0, m: 0 }}
+              />
+            </ListItemButton>
+          </Tooltip>
+        </ListItem>
+      );
+    });
   };
 
   return (
@@ -254,51 +276,108 @@ const Sidebar = ({ open, handleDrawerClose, pathname, variant = "permanent" }) =
         '& .MuiDrawer-paper': { boxSizing: 'border-box', width: drawerWidth },
       }}
     >
-      <DrawerHeader>
-        <IconButton onClick={handleDrawerClose}>
+      <DrawerHeader
+        sx={{
+          justifyContent: open ? "space-between" : "center",
+          px: open ? 2 : 1,
+          height: 72,
+          minHeight: "72px !important",
+        }}
+      >
+        {open && (
+          <Stack direction="row" alignItems="center" spacing={1.15}>
+            <Box
+              sx={{
+                width: 38,
+                height: 38,
+                borderRadius: "11px",
+                bgcolor: "rgba(16,207,201,0.14)",
+                color: theme.palette.primary.main,
+                display: "grid",
+                placeItems: "center",
+              }}
+            >
+              <SchoolOutlinedIcon sx={{ fontSize: 22 }} />
+            </Box>
+            <Box>
+              <Typography sx={{ color: "text.primary", fontWeight: 850, fontSize: "0.82rem", lineHeight: 1.1 }}>
+                Academic
+              </Typography>
+              <Typography sx={{ color: "text.secondary", fontWeight: 700, fontSize: "0.68rem", mt: 0.25 }}>
+                Portal
+              </Typography>
+            </Box>
+          </Stack>
+        )}
+        <IconButton
+          onClick={handleDrawerClose}
+          size="small"
+          sx={{
+            width: 34,
+            height: 34,
+            border: "1px solid",
+            borderColor: "divider",
+            bgcolor: "background.paper",
+          }}
+        >
           {theme.direction === "rtl" ? <ChevronRightIcon /> : <ChevronLeftIcon />}
         </IconButton>
       </DrawerHeader>
+
       <Divider />
-      <Avatar
-        sx={{
-          mx: "auto",
-          width: open ? 88 : 44,
-          height: open ? 88 : 44,
-          my: 3,
-          border: "2px solid grey",
-          transition: "0.25s",
-          bgcolor: getAvatarBgColor(),
-          fontSize: open ? 32 : 18,
-          fontWeight: "bold",
-          color: "white",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center"
-        }}
-        alt={name}
-      >
-        <PersonOutlineOutlinedIcon 
-          sx={{ 
-            fontSize: open ? 44 : 24,
-            transition: "font-size 0.3s ease-in-out"  // Add smooth transition for icon size
-          }} 
-        />
-      </Avatar>
-      <Typography align="center" sx={{ fontSize: open ? 17 : 0, transition: "0.25s" }}>
-        {name}
-      </Typography>
-      <Typography
-        align="center"
-        sx={{
-          my: 1.5,
-          fontSize: open ? 15 : 0,
-          transition: "0.25s",
-          color: theme.palette.info.main,
-        }}
-      >
-        {roleName}
-      </Typography>
+
+      <Box sx={{ px: open ? 2 : 1.25, py: 2 }}>
+        <Box
+          sx={{
+            borderRadius: "14px",
+            border: "1px solid",
+            borderColor: "rgba(7,29,53,0.07)",
+            bgcolor: theme.palette.mode === "dark" ? "rgba(255,255,255,0.025)" : "rgba(7,29,53,0.018)",
+            p: open ? 1.25 : 0.75,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: open ? "flex-start" : "center",
+            gap: open ? 1.25 : 0,
+          }}
+        >
+          <Avatar
+            sx={{
+              width: open ? 44 : 36,
+              height: open ? 44 : 36,
+              borderRadius: "12px",
+              bgcolor: theme.palette.primary.main,
+              color: "white",
+              fontSize: open ? 15 : 12,
+              fontWeight: 850,
+              boxShadow: `0 8px 18px ${theme.palette.primary.main}30`,
+              flexShrink: 0,
+            }}
+            alt={name}
+          >
+            {initials}
+          </Avatar>
+          {open && (
+            <Box sx={{ minWidth: 0 }}>
+              <Typography noWrap sx={{ color: "text.primary", fontWeight: 800, fontSize: "0.84rem" }}>
+                {name}
+              </Typography>
+              <Chip
+                label={roleName}
+                size="small"
+                sx={{
+                  height: 20,
+                  mt: 0.35,
+                  bgcolor: "rgba(16,207,201,0.12)",
+                  color: theme.palette.primary.main,
+                  fontWeight: 800,
+                  fontSize: "0.65rem",
+                  "& .MuiChip-label": { px: 0.75 },
+                }}
+              />
+            </Box>
+          )}
+        </Box>
+      </Box>
 
       <Divider />
 

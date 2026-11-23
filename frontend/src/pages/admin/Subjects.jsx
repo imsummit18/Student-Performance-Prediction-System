@@ -33,11 +33,14 @@ import GetAppIcon from "@mui/icons-material/GetApp";
 import SchoolIcon from "@mui/icons-material/School";
 
 import { api, endpoints } from "../../services/api";
+import { DeleteConfirmationDialog, ManagementHeader, ManagementStat, ManagementTable } from "../../components/ManagementUI";
+
 
 const AdminMatieres = () => {
   const [matieres, setMatieres] = useState([]);
   const [loading, setLoading] = useState(true);
   const [openDialog, setOpenDialog] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState(null);
   const [formData, setFormData] = useState({
     id: null,
     nom: "",
@@ -476,7 +479,7 @@ const AdminMatieres = () => {
                         </IconButton>
                         <IconButton
                           color="error"
-                          onClick={() => handleDelete(matiere.id)}
+                          onClick={() => setDeleteTarget(matiere)}
                           size="small"
                         >
                           <DeleteIcon fontSize="small" />
@@ -605,6 +608,17 @@ const AdminMatieres = () => {
           {snackbar.message}
         </Alert>
       </Snackbar>
+    </Box>
+  );
+};
+
+      <DeleteConfirmationDialog
+        open={!!deleteTarget}
+        title="Delete Subject"
+        name={deleteTarget?.nom}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={async () => { await handleDelete(deleteTarget.id); setDeleteTarget(null); }}
+      />
     </Box>
   );
 };

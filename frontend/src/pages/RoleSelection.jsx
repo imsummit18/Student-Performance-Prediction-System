@@ -1,5 +1,4 @@
 // @ts-nocheck
-import React from 'react';
 import { Link } from 'react-router-dom';
 import {
   Alert,
@@ -10,7 +9,6 @@ import {
   Paper,
   Stack,
   Typography,
-  alpha,
 } from '@mui/material';
 import {
   ArrowBack,

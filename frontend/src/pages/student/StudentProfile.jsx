@@ -15,7 +15,7 @@ import {
   IconButton,
   LinearProgress,
   Paper,
-  Grid
+  Grid,
 } from "@mui/material";
 import {
   Person,
@@ -27,10 +27,11 @@ import {
   Visibility,
   VisibilityOff,
   Edit,
-  Save
+  Save,
 } from "@mui/icons-material";
 import { fetchWithTokenRefresh, logout } from "../../utils/auth";
 import { API_BASE_URL } from "../../config";
+import { ManagementHeader } from "../../components/ManagementUI";
 
 const StudentProfile = () => {
   const [student, setStudent] = useState({
@@ -51,7 +52,7 @@ const StudentProfile = () => {
     message: "",
     severity: "success",
   });
-  
+
   const theme = useTheme();
   // Student theme color matching other components
   const studentColor = theme.palette.primary.main;
@@ -64,12 +65,15 @@ const StudentProfile = () => {
   const fetchStudentData = async () => {
     setLoading(true);
     try {
-      const response = await fetchWithTokenRefresh(`${API_BASE_URL}/student/profile/`, {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+      const response = await fetchWithTokenRefresh(
+        `${API_BASE_URL}/student/profile/`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+          },
         },
-      });
+      );
 
       if (response.ok) {
         const data = await response.json();
@@ -109,14 +113,17 @@ const StudentProfile = () => {
     }
 
     try {
-      const response = await fetchWithTokenRefresh(`${API_BASE_URL}/student/update-password/`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+      const response = await fetchWithTokenRefresh(
+        `${API_BASE_URL}/student/update-password/`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+          },
+          body: JSON.stringify({ password }),
         },
-        body: JSON.stringify({ password }),
-      });
+      );
 
       if (response.ok) {
         setSnackbar({
@@ -153,417 +160,372 @@ const StudentProfile = () => {
   if (loading) {
     return (
       <Box sx={{ width: "100%", mt: 4 }}>
-        <LinearProgress sx={{ 
-          height: 6, 
-          backgroundColor: alpha(studentColor, 0.15),
-          '& .MuiLinearProgress-bar': {
-            backgroundColor: studentColor
-          }
-        }} />
+        <LinearProgress
+          sx={{
+            height: 6,
+            borderRadius: 3,
+            bgcolor: "rgba(16,207,201,0.12)",
+            "& .MuiLinearProgress-bar": { bgcolor: studentColor },
+          }}
+        />
       </Box>
     );
   }
 
   return (
     <Box>
-      <Box sx={{ mb: 4 }}>
-        <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
-          <Typography 
-            variant="h4" 
-            sx={{ 
-              fontWeight: "bold", 
-              color: studentColor 
-            }}
-          >
-            Mon Profil
-          </Typography>
-        </Box>
-        <Typography 
-          variant="subtitle1" 
-          color="text.secondary" 
-          gutterBottom
-          sx={{ ml: 0.5 }}
+      <ManagementHeader
+        eyebrow="Personal settings"
+        title="Student Profile"
+        description="Review your account information and keep your password secure."
+      />
+
+      <Box
+        sx={{
+          display: "flex",
+          flexDirection: { xs: "column", md: "row" },
+          alignItems: "stretch",
+          gap: 2.5,
+        }}
+      >
+        <Card
+          elevation={0}
+          sx={{
+            flex: { xs: "1 1 100%", md: "0 0 calc(41.6667% - 7px)" },
+            minWidth: 0,
+            minHeight: 430,
+            borderRadius: "18px",
+            border: "1px solid rgba(7,29,53,0.08)",
+            overflow: "hidden",
+            boxShadow: "0 8px 26px rgba(7,29,53,0.035)",
+          }}
         >
-          Consultez et modifiez vos informations personnelles
-        </Typography>
-        <Divider sx={{ mt: 1, mb: 3 }} />
-      </Box>
+         
 
-      <Grid container spacing={3}>
-        {/* Personal Information Section */}
-        <Grid item xs={12} md={6}>
-          <Card 
-            sx={{ 
-              height: "100%",
-              boxShadow: 3,
-              position: "relative",
-              overflow: "hidden",
-              border: `1px solid ${alpha(studentColor, 0.1)}`
-            }}
-          >
-            <Box 
-              sx={{ 
-                height: 8, 
-                backgroundColor: studentColor,
-                width: "100%",
-                position: "absolute",
-                top: 0
-              }} 
-            />
-            <CardContent sx={{ pt: 4 }}>
-              <Typography 
-                variant="h6" 
-                sx={{ 
-                  mb: 3, 
-                  display: "flex", 
-                  alignItems: "center",
-                  fontWeight: 600
-                }}
-              >
-                <Person sx={{ mr: 1, color: studentColor }} />
-                Personal Information
-              </Typography>
-              
-              <Grid container spacing={2}>
-                <Grid item xs={12} sm={6}>
-                  <TextField
-                    label="First Name"
-                    value={student.first_name}
-                    fullWidth
-                    disabled
-                    InputProps={{
-                      startAdornment: (
-                        <InputAdornment position="start">
-                          <Person sx={{ color: alpha(studentColor, 0.7) }} />
-                        </InputAdornment>
-                      ),
-                    }}
-                    sx={{ 
-                      mb: 2,
-                      "& .MuiOutlinedInput-root": {
-                        backgroundColor: alpha(theme.palette.background.paper, 0.5)
-                      },
-                      "& .MuiOutlinedInput-notchedOutline": {
-                        borderColor: alpha(theme.palette.divider, 0.7)
-                      }
-                    }}
-                  />
-                </Grid>
-                <Grid item xs={12} sm={6}>
-                  <TextField
-                    label="Last Name"
-                    value={student.last_name}
-                    fullWidth
-                    disabled
-                    InputProps={{
-                      startAdornment: (
-                        <InputAdornment position="start">
-                          <Person sx={{ color: alpha(studentColor, 0.7) }} />
-                        </InputAdornment>
-                      ),
-                    }}
-                    sx={{ 
-                      mb: 2,
-                      "& .MuiOutlinedInput-root": {
-                        backgroundColor: alpha(theme.palette.background.paper, 0.5)
-                      },
-                      "& .MuiOutlinedInput-notchedOutline": {
-                        borderColor: alpha(theme.palette.divider, 0.7)
-                      }
-                    }}
-                  />
-                </Grid>
+          <CardContent sx={{ p: 3 }}>
+            <Typography
+              sx={{
+                color: "#071d35",
+                fontWeight: 850,
+                fontSize: "1rem",
+                mb: 2.5,
+              }}
+            >
+              Personal information
+            </Typography>
+            <Grid container spacing={2}>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  label="First Name"
+                  value={student.first_name}
+                  fullWidth
+                  disabled
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <Person sx={{ color: "text.disabled" }} />
+                      </InputAdornment>
+                    ),
+                  }}
+                />
               </Grid>
-              
-              <TextField
-                label="Email"
-                value={student.email}
-                fullWidth
-                disabled
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <Email sx={{ color: alpha(studentColor, 0.7) }} />
-                    </InputAdornment>
-                  ),
-                }}
-                sx={{ 
-                  mb: 2,
-                  "& .MuiOutlinedInput-root": {
-                    backgroundColor: alpha(theme.palette.background.paper, 0.5)
-                  },
-                  "& .MuiOutlinedInput-notchedOutline": {
-                    borderColor: alpha(theme.palette.divider, 0.7)
-                  }
-                }}
-              />
-              
-              <TextField
-                label="Phone"
-                value={student.phone}
-                fullWidth
-                disabled
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <Phone sx={{ color: alpha(studentColor, 0.7) }} />
-                    </InputAdornment>
-                  ),
-                }}
-                sx={{ 
-                  mb: 2,
-                  "& .MuiOutlinedInput-root": {
-                    backgroundColor: alpha(theme.palette.background.paper, 0.5)
-                  },
-                  "& .MuiOutlinedInput-notchedOutline": {
-                    borderColor: alpha(theme.palette.divider, 0.7)
-                  }
-                }}
-              />
-              
-              <TextField
-                label="Apogee Number"
-                value={student.n_appogie}
-                fullWidth
-                disabled
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <Badge sx={{ color: alpha(studentColor, 0.7) }} />
-                    </InputAdornment>
-                  ),
-                }}
-                sx={{ 
-                  mb: 2,
-                  "& .MuiOutlinedInput-root": {
-                    backgroundColor: alpha(theme.palette.background.paper, 0.5)
-                  },
-                  "& .MuiOutlinedInput-notchedOutline": {
-                    borderColor: alpha(theme.palette.divider, 0.7)
-                  }
-                }}
-              />
-              
-              <TextField
-                label="Class"
-                value={student.classe}
-                fullWidth
-                disabled
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <School sx={{ color: alpha(studentColor, 0.7) }} />
-                    </InputAdornment>
-                  ),
-                }}
-                sx={{ 
-                  "& .MuiOutlinedInput-root": {
-                    backgroundColor: alpha(theme.palette.background.paper, 0.5)
-                  },
-                  "& .MuiOutlinedInput-notchedOutline": {
-                    borderColor: alpha(theme.palette.divider, 0.7)
-                  }
-                }}
-              />
-            </CardContent>
-          </Card>
-        </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  label="Last Name"
+                  value={student.last_name}
+                  fullWidth
+                  disabled
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <Person sx={{ color: "text.disabled" }} />
+                      </InputAdornment>
+                    ),
+                  }}
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <TextField
+                  label="Email"
+                  value={student.email}
+                  fullWidth
+                  disabled
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <Email sx={{ color: "text.disabled" }} />
+                      </InputAdornment>
+                    ),
+                  }}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  label="Phone"
+                  value={student.phone}
+                  fullWidth
+                  disabled
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <Phone sx={{ color: "text.disabled" }} />
+                      </InputAdornment>
+                    ),
+                  }}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  label="Apogee Number"
+                  value={student.n_appogie}
+                  fullWidth
+                  disabled
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <Badge sx={{ color: "text.disabled" }} />
+                      </InputAdornment>
+                    ),
+                  }}
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <TextField
+                  label="Class"
+                  value={student.classe}
+                  fullWidth
+                  disabled
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <School sx={{ color: "text.disabled" }} />
+                      </InputAdornment>
+                    ),
+                  }}
+                />
+              </Grid>
+            </Grid>
+          </CardContent>
+        </Card>
 
-        {/* Change Password Section */}
-        <Grid item xs={12} md={6}>
-          <Card 
-            sx={{ 
-              height: "100%",
-              boxShadow: 3,
-              position: "relative",
-              overflow: "hidden",
-              border: `1px solid ${alpha(studentColor, 0.1)}`,
-              transition: "transform 0.2s, box-shadow 0.2s",
-              "&:hover": {
-                boxShadow: 4
-              }
-            }}
-          >
-            <Box 
-              sx={{ 
-                height: 8, 
-                backgroundColor: theme.palette.primary.main,
-                width: "100%",
-                position: "absolute",
-                top: 0
-              }} 
-            />
-            <CardContent sx={{ pt: 4 }}>
-              <Typography 
-                variant="h6" 
-                sx={{ 
-                  mb: 3, 
-                  display: "flex", 
-                  alignItems: "center",
-                  fontWeight: 600
+        <Card
+          elevation={0}
+          sx={{
+            flex: { xs: "1 1 100%", md: "0 0 calc(58.3333% - 7px)" },
+            minWidth: 0,
+            minHeight: 430,
+            borderRadius: "18px",
+            border: "1px solid rgba(7,29,53,0.08)",
+            boxShadow: "0 8px 26px rgba(7,29,53,0.035)",
+          }}
+        >
+          <CardContent sx={{ p: { xs: 2.5, md: 3 } }}>
+            <Box
+              sx={{ display: "flex", alignItems: "center", gap: 1.25, mb: 0.5 }}
+            >
+              <Box
+                sx={{
+                  width: 42,
+                  height: 42,
+                  borderRadius: "12px",
+                  bgcolor: "rgba(82,109,245,0.10)",
+                  color: "#526df5",
+                  display: "grid",
+                  placeItems: "center",
                 }}
               >
-                <Lock sx={{ mr: 1, color: theme.palette.primary.main }} />
-                Change Password
-              </Typography>
-              
-              <Box sx={{ p: 1 }}>
-                <TextField
-                  label="New Password"
-                  type={showPassword ? "text" : "password"}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  fullWidth
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <Lock sx={{ color: alpha(theme.palette.primary.main, 0.7) }} />
-                      </InputAdornment>
-                    ),
-                    endAdornment: (
-                      <InputAdornment position="end">
-                        <IconButton
-                          aria-label="toggle password visibility"
-                          onClick={handleTogglePasswordVisibility}
-                          edge="end"
-                        >
-                          {showPassword ? <VisibilityOff /> : <Visibility />}
-                        </IconButton>
-                      </InputAdornment>
-                    )
+                <Lock />
+              </Box>
+              <Box>
+                <Typography
+                  sx={{ color: "#071d35", fontWeight: 850, fontSize: "1rem" }}
+                >
+                  Change Password
+                </Typography>
+                <Typography
+                  sx={{
+                    color: "text.secondary",
+                    fontSize: "0.78rem",
+                    mt: 0.25,
                   }}
-                  sx={{ 
-                    mb: 3,
-                    "& .MuiOutlinedInput-root": {
-                      "&:hover .MuiOutlinedInput-notchedOutline": {
-                        borderColor: alpha(theme.palette.primary.main, 0.5)
-                      },
-                      "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
-                        borderColor: theme.palette.primary.main
-                      }
-                    }
-                  }}
-                />
-                
-                <TextField
-                  label="Confirm Password"
-                  type={showConfirmPassword ? "text" : "password"}
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  fullWidth
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <Lock sx={{ color: alpha(theme.palette.primary.main, 0.7) }} />
-                      </InputAdornment>
-                    ),
-                    endAdornment: (
-                      <InputAdornment position="end">
-                        <IconButton
-                          aria-label="toggle confirm password visibility"
-                          onClick={handleToggleConfirmPasswordVisibility}
-                          edge="end"
-                        >
-                          {showConfirmPassword ? <VisibilityOff /> : <Visibility />}
-                        </IconButton>
-                      </InputAdornment>
-                    )
-                  }}
-                  sx={{ 
-                    mb: 3,
-                    "& .MuiOutlinedInput-root": {
-                      "&:hover .MuiOutlinedInput-notchedOutline": {
-                        borderColor: alpha(theme.palette.primary.main, 0.5)
-                      },
-                      "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
-                        borderColor: theme.palette.primary.main
-                      }
-                    }
-                  }}
-                />
-                
-                {/* Display a strength indicator if password is not empty */}
-                {password && (
-                  <Box sx={{ mb: 3 }}>
-                    <Typography variant="caption" color="text.secondary" sx={{ mb: 0.5, display: "block" }}>
-                      Password strength:
-                    </Typography>
-                    <LinearProgress 
-                      variant="determinate" 
-                      value={
-                        password.length > 0 && password.length < 6 ? 25 :
-                        password.length >= 6 && password.length < 8 ? 50 :
-                        password.length >= 8 && !/[A-Z]/.test(password) ? 75 : 100
-                      } 
-                      sx={{
-                        height: 8,
-                        backgroundColor: alpha(theme.palette.grey[300], 0.5),
-                        '& .MuiLinearProgress-bar': {
-                          backgroundColor: 
-                            password.length > 0 && password.length < 6 ? theme.palette.error.main :
-                            password.length >= 6 && password.length < 8 ? theme.palette.warning.main :
-                            password.length >= 8 && !/[A-Z]/.test(password) ? theme.palette.info.main : 
-                            theme.palette.success.main
-                        }
-                      }}
-                    />
-                    <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: "block" }}>
-                      {password.length > 0 && password.length < 6 ? "Weak - Minimum 6 characters" :
-                      password.length >= 6 && password.length < 8 ? "Medium - Minimum 8 characters recommended" :
-                      password.length >= 8 && !/[A-Z]/.test(password) ? "Good - Add an uppercase letter for more security" : 
-                      "Excellent"}
-                    </Typography>
-                  </Box>
-                )}
-                
-                <Box sx={{ display: "flex", justifyContent: "center" }}>
-                  <Button
-                    variant="contained"
-                    color="primary"
-                    onClick={handlePasswordChange}
-                    disabled={!password || !confirmPassword}
-                    startIcon={<Save />}
-                    sx={{ 
-                      minWidth: 200,
-                      py: 1.2,
-                      fontWeight: "bold",
-                      boxShadow: 2,
-                      transition: "transform 0.2s",
-                      "&:hover": {
-                        transform: "translateY(-2px)",
-                        boxShadow: 3
-                      }
-                    }}
-                  >
-                    Update
-                  </Button>
-                </Box>
-                
-                <Typography variant="caption" color="text.secondary" sx={{ mt: 3, display: "block", textAlign: "center" }}>
-                  For best security, use at least 8 characters with uppercase letters, lowercase letters and numbers.
+                >
+                  Protect your account with a strong password
                 </Typography>
               </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
+            </Box>
 
-      {/* Snackbar for Notifications */}
+            <Box sx={{ mt: 3 }}>
+              <TextField
+                label="New Password"
+                type={showPassword ? "text" : "password"}
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                fullWidth
+                sx={{ mb: 2.5 }}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <Lock sx={{ color: "text.secondary" }} />
+                    </InputAdornment>
+                  ),
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton
+                        aria-label="Toggle password visibility"
+                        onClick={handleTogglePasswordVisibility}
+                        edge="end"
+                      >
+                        {showPassword ? <VisibilityOff /> : <Visibility />}
+                      </IconButton>
+                    </InputAdornment>
+                  ),
+                }}
+              />
+
+              <TextField
+                label="Confirm Password"
+                type={showConfirmPassword ? "text" : "password"}
+                value={confirmPassword}
+                onChange={(event) => setConfirmPassword(event.target.value)}
+                fullWidth
+                sx={{ mb: 2 }}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <Lock sx={{ color: "text.secondary" }} />
+                    </InputAdornment>
+                  ),
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton
+                        aria-label="Toggle confirm password visibility"
+                        onClick={handleToggleConfirmPasswordVisibility}
+                        edge="end"
+                      >
+                        {showConfirmPassword ? (
+                          <VisibilityOff />
+                        ) : (
+                          <Visibility />
+                        )}
+                      </IconButton>
+                    </InputAdornment>
+                  ),
+                }}
+              />
+
+              {password && (
+                <Box sx={{ mb: 2.5 }}>
+                  <Box
+                    sx={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      mb: 0.75,
+                    }}
+                  >
+                    <Typography
+                      sx={{
+                        color: "text.secondary",
+                        fontSize: "0.75rem",
+                        fontWeight: 700,
+                      }}
+                    >
+                      Password strength
+                    </Typography>
+                    <Typography
+                      sx={{
+                        color: "text.secondary",
+                        fontSize: "0.75rem",
+                        fontWeight: 700,
+                      }}
+                    >
+                      {password.length < 6
+                        ? "Weak"
+                        : password.length < 8
+                          ? "Medium"
+                          : !/[A-Z]/.test(password)
+                            ? "Good"
+                            : "Excellent"}
+                    </Typography>
+                  </Box>
+                  <LinearProgress
+                    variant="determinate"
+                    value={
+                      password.length < 6
+                        ? 25
+                        : password.length < 8
+                          ? 50
+                          : !/[A-Z]/.test(password)
+                            ? 75
+                            : 100
+                    }
+                    sx={{
+                      height: 8,
+                      borderRadius: 4,
+                      bgcolor: "rgba(7,29,53,0.08)",
+                      "& .MuiLinearProgress-bar": {
+                        borderRadius: 4,
+                        bgcolor:
+                          password.length < 6
+                            ? theme.palette.error.main
+                            : password.length < 8
+                              ? theme.palette.warning.main
+                              : !/[A-Z]/.test(password)
+                                ? theme.palette.info.main
+                                : theme.palette.success.main,
+                      },
+                    }}
+                  />
+                </Box>
+              )}
+
+              <Button
+                variant="contained"
+                onClick={handlePasswordChange}
+                disabled={!password || !confirmPassword}
+                startIcon={<Save />}
+                sx={{
+                  minHeight: 48,
+                  px: 3,
+                  borderRadius: "12px",
+                  bgcolor: "#071d35",
+                  fontWeight: 850,
+                  boxShadow: "none",
+                  "&:hover": {
+                    bgcolor: "#10aaa5",
+                    boxShadow: "0 10px 24px rgba(16,207,201,0.20)",
+                  },
+                }}
+              >
+                Update Password
+              </Button>
+
+              <Typography
+                sx={{
+                  mt: 2.5,
+                  color: "text.secondary",
+                  fontSize: "0.75rem",
+                  lineHeight: 1.6,
+                }}
+              >
+                For best security, use at least 8 characters with uppercase
+                letters, lowercase letters and numbers.
+              </Typography>
+            </Box>
+          </CardContent>
+        </Card>
+      </Box>
+
       <Snackbar
         open={snackbar.open}
         autoHideDuration={6000}
         onClose={handleCloseSnackbar}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
       >
         <Alert
           onClose={handleCloseSnackbar}
-          // @ts-ignore
           severity={snackbar.severity}
           variant="filled"
-          sx={{ 
-            width: "100%",
-            boxShadow: 3
-          }}
+          sx={{ width: "100%", borderRadius: "10px" }}
         >
           {snackbar.message}
         </Alert>

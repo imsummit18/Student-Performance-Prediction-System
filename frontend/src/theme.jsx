@@ -2,8 +2,8 @@ export const getDesignTokens = (mode, role) => {
   // Unified color scheme matching Landing Page
   // Unified color scheme matching Landing Page
   // DataCamp Navy Blue for Light Mode, Lighter Blue for Dark Mode
-  const primaryColor = mode === 'dark' ? "#90CAF9" : "#05192D"; 
-  const secondaryColor = "#9C27B0"; // Purple Accent
+  const primaryColor = mode === 'dark' ? "#90CAF9" : "#10cfc9"; 
+  const secondaryColor = "#000000"; // Purple Accent
 
   return {
     palette: {

@@ -1,253 +1,285 @@
 // @ts-nocheck
 import React from 'react';
-import { Link } from "react-router-dom"
-import { Box, Typography, Button, Container, Paper, Grid, useTheme, alpha } from "@mui/material"
-import SchoolIcon from "@mui/icons-material/School"
-import SupervisorAccountIcon from "@mui/icons-material/SupervisorAccount"
-import PersonIcon from "@mui/icons-material/Person"
-import PageTitle from "../components/PageTitle"
-import backgroundImage from '../assets/images/background_Loginpage.png'; // Reusing the background for consistency
+import { Link } from 'react-router-dom';
+import {
+  Alert,
+  Box,
+  Button,
+  Container,
+  Grid,
+  Paper,
+  Stack,
+  Typography,
+  alpha,
+} from '@mui/material';
+import {
+  ArrowBack,
+  ArrowForward,
+  Person,
+  School,
+  SupervisorAccount,
+  VerifiedUser,
+} from '@mui/icons-material';
+import PageTitle from '../components/PageTitle';
+import backgroundImage from '../assets/images/background_Loginpage.png';
 
 const SelectionRole = () => {
-  const theme = useTheme();
-
   const roles = [
     {
-      id: "admin",
-      title: "Administrator",
-      description: "Global management and system settings",
-      icon: <SupervisorAccountIcon sx={{ fontSize: 60 }} />,
-      color: theme.palette.primary.main,
+      id: 'admin',
+      title: 'Administrator',
+      description: 'Manage users, academic data and institutional settings.',
+      icon: <SupervisorAccount sx={{ fontSize: 34 }} />,
+      accent: '#10cfc9',
     },
     {
-      id: "teacher",
-      title: "Teacher",
-      description: "Performance monitoring and risk detection",
-      icon: <SchoolIcon sx={{ fontSize: 60 }} />,
-      color: theme.palette.secondary.main, // Uses Purple from theme
+      id: 'teacher',
+      title: 'Teacher',
+      description: 'Monitor classes, manage grades and identify students at risk.',
+      icon: <School sx={{ fontSize: 34 }} />,
+      accent: '#526df5',
     },
     {
-      id: "student",
-      title: "Student",
-      description: "Grades, progress and academic guidance",
-      icon: <PersonIcon sx={{ fontSize: 60 }} />,
-      color: theme.palette.info.main,
+      id: 'student',
+      title: 'Student',
+      description: 'View results, track progress and receive academic guidance.',
+      icon: <Person sx={{ fontSize: 34 }} />,
+      accent: '#f5a524',
     },
-  ]
+  ];
 
   return (
-    <Box sx={{ 
-      minHeight: "100vh", 
-      display: "flex", 
-      flexDirection: "column", 
-      bgcolor: 'background.default',
-      backgroundImage: `url(${backgroundImage})`,
-      backgroundSize: 'cover',
-      backgroundPosition: 'center',
-      backgroundAttachment: 'fixed',
-      position: 'relative',
-      '&::before': {
-        content: '""',
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        backgroundColor: alpha('#000', 0.4), // Dark overlay for contrast
-        zIndex: 0
-      }
-    }}>
+    <Box
+      sx={{
+        minHeight: '100vh',
+        position: 'relative',
+        overflow: 'hidden',
+        display: 'flex',
+        flexDirection: 'column',
+        backgroundImage: `linear-gradient(135deg, rgba(5, 27, 50, 0.94), rgba(5, 27, 50, 0.76)), url(${backgroundImage})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundAttachment: { md: 'fixed', xs: 'scroll' },
+      }}
+    >
       <PageTitle
         title="Student Performance Prediction System - Role Selection"
         description="Select your role to sign in."
       />
-    <Box sx={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', flexGrow: 1 }}>
-      <Container 
-        maxWidth="lg" 
-        sx={{ 
-          flexGrow: 1, 
-          display: "flex", 
-          flexDirection: "column", 
-          justifyContent: "center", 
-          pt: 16, 
-          pb: 12   
+
+      <Box
+        sx={{
+          position: 'absolute',
+          width: 420,
+          height: 420,
+          borderRadius: '50%',
+          right: { xs: -310, md: -170 },
+          top: { xs: -280, md: -220 },
+          background: 'radial-gradient(circle, rgba(16,207,201,0.30) 0%, rgba(16,207,201,0) 70%)',
+          pointerEvents: 'none',
+        }}
+      />
+
+      <Container
+        maxWidth="lg"
+        sx={{
+          position: 'relative',
+          zIndex: 1,
+          flexGrow: 1,
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+          py: { xs: 4, md: 5 },
         }}
       >
-        
-          <Box sx={{ textAlign: "center", mb: 8 }}>
-            <Typography 
-              variant="h2" 
-              component="h1" 
-              gutterBottom 
-              sx={{ 
-                fontWeight: 800, 
-                fontSize: { xs: '2.5rem', md: '4rem' },
-                color: 'white',
-                textShadow: '0 4px 20px rgba(0,0,0,0.3)',
-                mb: 2
-              }}
-            >
-              Welcome
+        <Stack
+          direction="row"
+          alignItems="center"
+          justifyContent="space-between"
+          sx={{ mb: { xs: 3, md: 4 } }}
+        >
+          <Link to="/" style={{ textDecoration: 'none' }}>
+            <Stack direction="row" alignItems="center" spacing={1.2}>
+              <Box
+                sx={{
+                  width: 42,
+                  height: 42,
+                  borderRadius: '12px',
+                  bgcolor: 'rgba(16,207,201,0.16)',
+                  border: '1px solid rgba(16,207,201,0.38)',
+                  color: '#56e0da',
+                  display: 'grid',
+                  placeItems: 'center',
+                }}
+              >
+                <School />
+              </Box>
+              <Typography sx={{ color: 'white', fontWeight: 800, fontSize: { xs: '1.05rem', sm: '1.25rem' } }}>
+                Academic Portal
+              </Typography>
+            </Stack>
+          </Link>
+
+          <Stack direction="row" spacing={1} alignItems="center" sx={{ display: { xs: 'none', sm: 'flex' } }}>
+            <VerifiedUser sx={{ fontSize: 18, color: '#56e0da' }} />
+            <Typography sx={{ color: 'rgba(255,255,255,0.82)', fontSize: '0.875rem', fontWeight: 600 }}>
+              Secure institutional access
             </Typography>
-            <Typography 
-              variant="h5" 
-              sx={{ 
-                maxWidth: 700, 
-                mx: "auto", 
-                mb: 2, 
-                fontWeight: 500,
-                color: alpha('#fff', 0.9),
-                lineHeight: 1.6
+          </Stack>
+        </Stack>
+
+        <Paper
+          elevation={0}
+          sx={{
+            p: { xs: 2.5, sm: 3.5, md: 5 },
+            borderRadius: { xs: '20px', md: '28px' },
+            border: '1px solid rgba(255,255,255,0.72)',
+            bgcolor: 'rgba(255,255,255,0.94)',
+            backdropFilter: 'blur(18px)',
+            boxShadow: '0 24px 70px rgba(3,19,38,0.28)',
+          }}
+        >
+          <Box sx={{ textAlign: 'center', maxWidth: 760, mx: 'auto', mb: { xs: 3, md: 4 } }}>
+            <Stack direction="row" spacing={1} alignItems="center" justifyContent="center" sx={{ mb: 1.5 }}>
+              <Box sx={{ width: 34, height: 3, borderRadius: 2, bgcolor: 'primary.main' }} />
+              <Typography sx={{ color: 'primary.main', fontWeight: 800, fontSize: '0.78rem', letterSpacing: '0.12em', textTransform: 'uppercase' }}>
+                EST Oujda · 2026/2027
+              </Typography>
+              <Box sx={{ width: 34, height: 3, borderRadius: 2, bgcolor: 'primary.main' }} />
+            </Stack>
+
+            <Typography
+              component="h1"
+              sx={{
+                color: '#071d35',
+                fontWeight: 800,
+                fontSize: { xs: '2rem', sm: '2.6rem', md: '3.15rem' },
+                lineHeight: 1.05,
+                letterSpacing: '-0.045em',
+                mb: 1.5,
               }}
             >
-              Select your role to access your dashboard
+              Choose your <Box component="span" sx={{ color: 'primary.main' }}>portal</Box>
+            </Typography>
+            <Typography sx={{ color: 'text.secondary', fontSize: { xs: '0.96rem', md: '1.05rem' }, lineHeight: 1.75 }}>
+              Select the account role that matches your position to continue securely.
             </Typography>
           </Box>
 
-          <Grid container spacing={4} justifyContent="center" alignItems="stretch">
+          <Grid container spacing={2.5}>
             {roles.map((role) => (
               <Grid item xs={12} md={4} key={role.id}>
-                <Link to={`/login/${role.id}`} style={{ textDecoration: "none", height: '100%', display: 'block' }}>
-                  <Paper
-                    elevation={0}
+                <Paper
+                  component={Link}
+                  to={`/login/${role.id}`}
+                  elevation={0}
+                  sx={{
+                    height: '100%',
+                    minHeight: { xs: 220, md: 250 },
+                    p: { xs: 2.5, md: 3 },
+                    borderRadius: '18px',
+                    border: '1px solid rgba(7,29,53,0.09)',
+                    bgcolor: 'white',
+                    color: 'inherit',
+                    textDecoration: 'none',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'flex-start',
+                    transition: 'transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease',
+                    '&:hover': {
+                      transform: 'translateY(-8px)',
+                      borderColor: `${role.accent}70`,
+                      boxShadow: `0 18px 38px ${role.accent}1A`,
+                    },
+                    '&:hover .role-arrow': {
+                      bgcolor: role.accent,
+                      color: 'white',
+                      transform: 'translateX(4px)',
+                    },
+                  }}
+                >
+                  <Box
                     sx={{
-                      p: 5,
-                      display: "flex",
-                      flexDirection: "column",
-                      alignItems: "center",
-                      height: "100%",
-                      borderRadius: 0,
-                      background: 'rgba(255, 255, 255, 0.1)', // Glass effect
-                      backdropFilter: 'blur(20px)',
-                      border: '1px solid rgba(255, 255, 255, 0.2)',
-                      transition: "all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)",
-                      cursor: "pointer",
-                      position: 'relative',
-                      overflow: 'hidden',
-                      "&:hover": {
-                        transform: "translateY(-12px)",
-                        background: 'rgba(255, 255, 255, 0.95)',
-                        boxShadow: theme.shadows[4],
-                        borderColor: 'transparent',
-                        '& .role-icon-box': {
-                          transform: 'scale(1.1) rotate(5deg)',
-                          background: role.color,
-                          color: 'white',
-                          boxShadow: theme.shadows[4]
-                        },
-                        '& .role-title': {
-                          color: '#1a202c',
-                          transform: 'translateY(2px)'
-                        },
-                        '& .role-desc': {
-                          color: '#4a5568'
-                        },
-                        '& .role-arrow': {
-                          color: role.color, 
-                          opacity: 1,
-                          transform: 'translateX(5px)'
-                        }
-                      },
+                      width: 58,
+                      height: 58,
+                      borderRadius: '16px',
+                      bgcolor: `${role.accent}16`,
+                      color: role.accent,
+                      display: 'grid',
+                      placeItems: 'center',
+                      mb: 2,
                     }}
                   >
+                    {role.icon}
+                  </Box>
+
+                  <Typography component="h2" sx={{ color: '#071d35', fontWeight: 800, fontSize: '1.25rem', mb: 0.75 }}>
+                    {role.title}
+                  </Typography>
+                  <Typography sx={{ color: 'text.secondary', lineHeight: 1.65, flexGrow: 1, mb: 2.5, fontSize: '0.93rem' }}>
+                    {role.description}
+                  </Typography>
+
+                  <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ width: '100%' }}>
+                    <Typography sx={{ color: '#071d35', fontWeight: 800, fontSize: '0.9rem' }}>
+                      Continue
+                    </Typography>
                     <Box
-                      className="role-icon-box"
-                      sx={{
-                        p: 3,
-                        borderRadius: "24px",
-                        background: 'rgba(255,255,255,0.1)',
-                        color: 'white',
-                        mb: 4,
-                        transition: "all 0.4s ease",
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        width: 100,
-                        height: 100
-                      }}
-                    >
-                      {role.icon}
-                    </Box>
-                    <Typography 
-                      className="role-title"
-                      variant="h4" 
-                      component="h2" 
-                      align="center" 
-                      gutterBottom 
-                      sx={{ 
-                        fontWeight: 700, 
-                        color: 'white', 
-                        fontSize: '1.75rem',
-                        transition: 'color 0.3s ease',
-                        mb: 2
-                      }}
-                    >
-                      {role.title}
-                    </Typography>
-                    <Typography 
-                      className="role-desc"
-                      variant="body1" 
-                      align="center" 
-                      sx={{ 
-                        color: alpha('#fff', 0.8),
-                        fontSize: '1.05rem',
-                        lineHeight: 1.6,
-                        transition: 'color 0.3s ease',
-                        flexGrow: 1
-                      }}
-                    >
-                      {role.description}
-                    </Typography>
-                    
-                    <Box 
                       className="role-arrow"
-                      sx={{ 
-                        mt: 3, 
-                        opacity: 1, 
-                        transform: 'none', 
-                        transition: 'all 0.4s ease',
-                        color: 'white',
-                        fontWeight: 'bold',
-                        display: 'flex',
-                        alignItems: 'center'
+                      sx={{
+                        width: 38,
+                        height: 38,
+                        borderRadius: '10px',
+                        bgcolor: `${role.accent}16`,
+                        color: role.accent,
+                        display: 'grid',
+                        placeItems: 'center',
+                        transition: 'all 180ms ease',
                       }}
                     >
-                      Sign in →
+                      <ArrowForward sx={{ fontSize: 20 }} />
                     </Box>
-                  </Paper>
-                </Link>
+                  </Stack>
+                </Paper>
               </Grid>
             ))}
           </Grid>
 
-          <Box sx={{ mt: 10, textAlign: "center" }}>
-            <Button 
-              component={Link} 
-              to="/" 
-              sx={{ 
-                fontSize: "1rem", 
-                fontWeight: 600, 
-                color: alpha('#fff', 0.9),
-                textTransform: 'none',
-                py: 1.5,
-                px: 4,
-                borderRadius: 0,
-                border: '1px solid rgba(255,255,255,0.3)',
-                backdropFilter: 'blur(5px)',
-                '&:hover': {
-                  background: 'rgba(255,255,255,0.1)',
-                  borderColor: 'white'
-                }
-              }}
-            >
-              Back to home
-            </Button>
-          </Box>
-      
+          <Alert
+            severity="info"
+            icon={<VerifiedUser />}
+            sx={{
+              mt: 3,
+              borderRadius: '12px',
+              bgcolor: '#eef7f7',
+              color: '#36505d',
+              border: '1px solid #d7ebea',
+              '& .MuiAlert-icon': { color: '#10aaa5' },
+              '& .MuiAlert-message': { fontWeight: 600, fontSize: '0.86rem' },
+            }}
+          >
+            Accounts are created and managed by the administration.
+          </Alert>
+        </Paper>
+
+        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2.5 }}>
+          <Button
+            component={Link}
+            to="/"
+            startIcon={<ArrowBack />}
+            sx={{
+              color: 'rgba(255,255,255,0.82)',
+              fontWeight: 700,
+              px: 2,
+              '&:hover': { bgcolor: 'rgba(255,255,255,0.08)', color: 'white' },
+            }}
+          >
+            Back to home
+          </Button>
+        </Box>
       </Container>
     </Box>
-    </Box>
-  )
-}
+  );
+};
 
-export default SelectionRole
+export default SelectionRole;

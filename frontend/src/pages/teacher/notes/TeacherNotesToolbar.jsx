@@ -17,12 +17,15 @@ const TeacherNotesToolbar = ({
   selectedMatiere,
 }) => (
   <Box sx={{
+    px: 2.5,
+    py: 2,
     display: "flex",
     flexDirection: { xs: "column", md: "row" },
     justifyContent: "space-between",
-    alignItems: { xs: "flex-start", md: "center" },
-    mb: 3,
+    alignItems: { xs: "stretch", md: "center" },
     gap: 2,
+    borderBottom: "1px solid",
+    borderColor: "divider",
   }}>
     <FormControl sx={{ minWidth: 240, bgcolor: "background.paper" }}>
       <InputLabel id="matiere-filter-label">Filter by Subject</InputLabel>

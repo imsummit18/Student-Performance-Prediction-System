@@ -30,6 +30,7 @@ import { API_BASE_URL } from '../../config';
 import { useNavigate } from 'react-router-dom';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import CategoryIcon from '@mui/icons-material/Category';
+import { ManagementHeader, ManagementStat, ManagementTable } from "../../components/ManagementUI";
 
 const TeacherAnalysis = () => {
   const [loading, setLoading] = useState(false);
@@ -123,149 +124,156 @@ const TeacherAnalysis = () => {
 
   return (
     <Box>
-      {/* Header section */}
-      <Box sx={{ mb: 4 }}>
-        <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
-          <Typography variant="h4" color="primary.main" fontWeight="bold">
-            Student Classifications
-          </Typography>
-        </Box>
-        <Typography variant="subtitle1" color="text.secondary" gutterBottom>
-          Performance levels by subject
-        </Typography>
-        <Divider sx={{ mt: 1, mb: 3 }} />
-      </Box>
-
-      {/* Section de filtres et d'actions */}
-      <Box sx={{ mb: 4, display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, justifyContent: 'space-between', gap: 2 }}>
-        <Grid container spacing={2} alignItems="center">
-          <Grid item xs={12} sm={6} md={4}>
-            <FormControl fullWidth sx={{ bgcolor: 'background.paper' }}>
+      <ManagementHeader
+        eyebrow="AI & performance analysis"
+        title="Student Classifications"
+        description="Review subject performance, AI predictions and global student classifications."
+        action={
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, width: { xs: "100%", sm: "auto" } }}>
+            <FormControl
+              size="small"
+              sx={{
+                minWidth: { xs: 0, sm: 220 },
+                flex: { xs: 1, sm: "none" },
+                "& .MuiOutlinedInput-root": {
+                  bgcolor: "rgba(255,255,255,0.10)",
+                  color: "white",
+                  borderRadius: "12px",
+                  "& fieldset": { borderColor: "rgba(255,255,255,0.28)" },
+                  "&:hover fieldset": { borderColor: "#56e0da" },
+                  "& svg": { color: "white" },
+                },
+                "& .MuiInputLabel-root": { color: "rgba(255,255,255,0.72)" },
+              }}
+            >
               <InputLabel id="matiere-select-label">Subject</InputLabel>
               <Select
                 labelId="matiere-select-label"
                 value={selectedMatiere}
-                onChange={(e) => setSelectedMatiere(e.target.value)}
+                onChange={(event) => setSelectedMatiere(event.target.value)}
                 label="Subject"
               >
                 {matieres.map((matiere) => (
-                  <MenuItem key={matiere.id} value={matiere.id}>
-                    {matiere.nom}
-                  </MenuItem>
+                  <MenuItem key={matiere.id} value={matiere.id}>{matiere.nom}</MenuItem>
                 ))}
               </Select>
             </FormControl>
-          </Grid>
-          <Grid item>
-            <Tooltip title="Refresh data">
-              <IconButton 
-                onClick={handleRefresh} 
-                color="primary"
-                sx={{ 
-                  bgcolor: 'rgba(76, 175, 80, 0.08)',
-                  '&:hover': { bgcolor: 'rgba(76, 175, 80, 0.16)' },
+
+            <Tooltip title="Refresh classifications">
+              <IconButton
+                onClick={handleRefresh}
+                disabled={!selectedMatiere || loading}
+                sx={{
+                  width: 48,
+                  height: 48,
+                  borderRadius: "12px",
+                  bgcolor: "rgba(255,255,255,0.10)",
+                  color: "white",
+                  border: "1px solid rgba(255,255,255,0.28)",
+                  "&:hover": { bgcolor: "rgba(16,207,201,0.18)", borderColor: "#56e0da" },
                 }}
               >
                 <RefreshIcon />
               </IconButton>
             </Tooltip>
-          </Grid>
-        </Grid>
-      </Box>
+          </Box>
+        }
+      />
 
-      {/* Loading indicator */}
-      {loading && (
-        <Box sx={{ display: 'flex', justifyContent: 'center', my: 4 }}>
-          <CircularProgress color="primary" />
-        </Box>
-      )}
-
-      {/* Error message */}
       {error && (
         <Snackbar open={!!error} autoHideDuration={6000} onClose={() => setError(null)}>
-          <Alert onClose={() => setError(null)} severity="error" sx={{ width: '100%' }}>
+          <Alert onClose={() => setError(null)} severity="error" sx={{ width: "100%", borderRadius: "10px" }}>
             {error}
           </Alert>
         </Snackbar>
       )}
 
-      {!loading && (
-        <Card elevation={2} sx={{ overflow: 'hidden' }}>
-          <CardContent sx={{ p: { xs: 1, sm: 2 } }}>
-            <TableContainer component={Paper}>
-              <Table>
-                <TableHead sx={{ bgcolor: theme.palette.action.hover }}>
-                  <TableRow>
-                    <TableCell 
-// @ts-ignore
-                    fontWeight="bold">Student</TableCell>
-                    <TableCell>Subject Performance</TableCell>
-                    <TableCell align="center">Subject Grade</TableCell>
-                    <TableCell align="center" sx={{ color: theme.palette.primary.main, fontWeight: 'bold' }}>
-                        AI Prediction (General)
+      <Grid container spacing={2.5} sx={{ mb: 3 }}>
+        <Grid item xs={12} sm={6} md={3}>
+          <ManagementStat
+            title="Classified Students"
+            value={loading ? "—" : classifications.length}
+            icon={<CategoryIcon />}
+            color="#10cfc9"
+            subtitle="Students in the selected subject"
+          />
+        </Grid>
+      </Grid>
+
+      <ManagementTable
+        title="Student classifications"
+        subtitle={selectedMatiere ? "Subject and global AI performance levels" : "Select a subject to display classifications"}
+      >
+        {loading ? (
+          <Box sx={{ height: 300, display: "grid", placeItems: "center" }}>
+            <CircularProgress />
+          </Box>
+        ) : (
+          <TableContainer>
+            <Table>
+              <TableHead>
+                <TableRow sx={{ bgcolor: "rgba(7,29,53,0.025)" }}>
+                  <TableCell sx={{ fontWeight: 850, color: "#071d35", py: 1.5 }}>Student</TableCell>
+                  <TableCell sx={{ fontWeight: 850, color: "#071d35", py: 1.5 }}>Subject Performance</TableCell>
+                  <TableCell align="center" sx={{ fontWeight: 850, color: "#071d35", py: 1.5 }}>Subject Grade</TableCell>
+                  <TableCell align="center" sx={{ fontWeight: 850, color: "#526df5", py: 1.5 }}>AI Prediction</TableCell>
+                  <TableCell align="center" sx={{ fontWeight: 850, color: "#071d35", py: 1.5 }}>Global AI Status</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {classifications.length > 0 ? classifications.map((classification) => (
+                  <TableRow
+                    key={classification.student_id}
+                    hover
+                    sx={{ "&:last-child td": { border: 0 }, "& td": { borderColor: "rgba(7,29,53,0.06)" } }}
+                  >
+                    <TableCell sx={{ fontWeight: 750 }}>{classification.student_name}</TableCell>
+                    <TableCell>
+                      <Chip
+                        icon={<CategoryIcon />}
+                        label={classification.performance_category}
+                        size="small"
+                        sx={{ bgcolor: getCategoryColor(classification.performance_category), color: "white", fontWeight: 800, "& .MuiChip-icon": { color: "white" } }}
+                      />
                     </TableCell>
-                    <TableCell align="center">Global AI Status</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {classifications.map((classification) => (
-                    <TableRow key={classification.student_id} hover>
-                      <TableCell sx={{ fontWeight: 500 }}>{classification.student_name}</TableCell>
-                      <TableCell>
-                        <Chip 
-                          icon={<CategoryIcon />}
-                          label={classification.performance_category} 
+                    <TableCell align="center">
+                      <Chip
+                        label={classification.average_score}
+                        size="small"
+                        sx={{ bgcolor: "rgba(82,109,245,0.08)", color: "#526df5", fontWeight: 850 }}
+                      />
+                    </TableCell>
+                    <TableCell align="center">
+                      {classification.ai_prediction !== "-" ? (
+                        <Chip label={classification.ai_prediction} variant="outlined" size="small" sx={{ color: "#526df5", borderColor: "rgba(82,109,245,0.35)", fontWeight: 800 }} />
+                      ) : (
+                        <Typography variant="caption" color="text.disabled">N/A</Typography>
+                      )}
+                    </TableCell>
+                    <TableCell align="center">
+                      {classification.ai_category && classification.ai_category !== "Non Analysé" ? (
+                        <Chip
+                          label={classification.ai_category}
                           size="small"
-                          sx={{ 
-                            backgroundColor: getCategoryColor(classification.performance_category),
-                            color: 'white'
-                          }} 
+                          sx={{ bgcolor: getCategoryColor(classification.ai_category), color: "white", fontWeight: 800 }}
                         />
-                      </TableCell>
-                      <TableCell align="center" sx={{ fontWeight: 'bold' }}>{classification.average_score}</TableCell>
-                      <TableCell align="center">
-                          {classification.ai_prediction !== "-" ? (
-                              <Chip 
-                                label={classification.ai_prediction} 
-                                variant="outlined" 
-                                color="primary" 
-                                size="small" 
-                                sx={{ fontWeight: 'bold' }}
-                              />
-                          ) : (
-                              <Typography variant="caption" color="text.disabled">N/A</Typography>
-                          )}
-                      </TableCell>
-                      <TableCell align="center">
-                          {classification.ai_category && classification.ai_category !== "Non Analysé" ? (
-                             <Chip
-                                label={classification.ai_category}
-                                size="small"
-                                sx={{ 
-                                    backgroundColor: getCategoryColor(classification.ai_category),
-                                    color: 'white',
-                                    fontWeight: 500
-                                }}
-                             />
-                          ) : (
-                              <Typography variant="caption" color="text.disabled">-</Typography>
-                          )}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                  {classifications.length === 0 && (
-                    <TableRow>
-                      <TableCell colSpan={5} align="center" sx={{ py: 3 }}>
-                        No data available. Select a subject.
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </TableContainer>
-          </CardContent>
-        </Card>
-      )}
+                      ) : (
+                        <Typography variant="caption" color="text.disabled">-</Typography>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                )) : (
+                  <TableRow>
+                    <TableCell colSpan={5} align="center" sx={{ py: 7, color: "text.secondary" }}>
+                      {selectedMatiere ? "No classification data available" : "Select a subject to display classifications"}
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        )}
+      </ManagementTable>
     </Box>
   );
 };

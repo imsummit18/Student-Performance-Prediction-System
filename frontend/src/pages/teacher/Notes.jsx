@@ -2,16 +2,21 @@ import {
   Alert,
   Box,
   CircularProgress,
-  Divider,
+  Grid,
   Snackbar,
-  Typography,
   useTheme,
 } from "@mui/material";
+import GradeOutlinedIcon from "@mui/icons-material/GradeOutlined";
 
 import TeacherNoteDialog from "./notes/TeacherNoteDialog";
 import TeacherNotesTable from "./notes/TeacherNotesTable";
 import TeacherNotesToolbar from "./notes/TeacherNotesToolbar";
 import { useTeacherNotes } from "./notes/useTeacherNotes";
+import {
+  ManagementHeader,
+  ManagementStat,
+  ManagementTable,
+} from "../../components/ManagementUI";
 
 const TeacherNotes = () => {
   const theme = useTheme();
@@ -46,40 +51,56 @@ const TeacherNotes = () => {
 
   return (
     <Box>
-      <Box sx={{ mb: 4 }}>
-        <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
-          <Typography variant="h4" color="primary.main" fontWeight="bold">
-            Grade Management
-          </Typography>
-        </Box>
-        <Typography variant="subtitle1" color="text.secondary" gutterBottom>
-          Assign and manage student grades
-        </Typography>
-        <Divider sx={{ mt: 1, mb: 3 }} />
-      </Box>
-
-      <TeacherNotesToolbar
-        matieres={matieres}
-        onDownloadTemplate={downloadTemplate}
-        onFileUpload={handleFileUpload}
-        onMatiereChange={handleMatiereFilterChange}
-        selectedMatiere={selectedMatiere}
+      <ManagementHeader
+        eyebrow="Academic records"
+        title="Grade Management"
+        description="Assign, edit and monitor student grades by subject."
       />
 
-      {loading ? (
-        <Box sx={{ display: "flex", justifyContent: "center", mt: 4, mb: 4 }}>
-          <CircularProgress color="primary" />
-        </Box>
-      ) : (
-        <TeacherNotesTable
-          getScoreColor={getScoreColor}
-          notes={notes}
-          onDelete={handleDelete}
-          onEdit={handleOpenDialog}
+      <Grid container spacing={2.5} sx={{ mb: 3 }}>
+        <Grid item xs={12} sm={6} md={3}>
+          <ManagementStat
+            title="Grade Records"
+            value={loading ? "—" : notes.length}
+            icon={<GradeOutlinedIcon />}
+            color="#10cfc9"
+            subtitle="Registered grade records"
+          />
+        </Grid>
+      </Grid>
+
+      <ManagementTable
+        title="Grade records"
+        subtitle={
+          selectedMatiere
+            ? "Selected subject grades"
+            : "Select a subject to display grades"
+        }
+      >
+        <TeacherNotesToolbar
+          matieres={matieres}
+          onDownloadTemplate={downloadTemplate}
+          onFileUpload={handleFileUpload}
+          onMatiereChange={handleMatiereFilterChange}
           selectedMatiere={selectedMatiere}
-          students={students}
+          inTableHeader
         />
-      )}
+
+        {loading ? (
+          <Box sx={{ height: 300, display: "grid", placeItems: "center" }}>
+            <CircularProgress color="primary" />
+          </Box>
+        ) : (
+          <TeacherNotesTable
+            getScoreColor={getScoreColor}
+            notes={notes}
+            onDelete={handleDelete}
+            onEdit={handleOpenDialog}
+            selectedMatiere={selectedMatiere}
+            students={students}
+          />
+        )}
+      </ManagementTable>
 
       <TeacherNoteDialog
         editMode={editMode}
@@ -94,13 +115,13 @@ const TeacherNotes = () => {
         open={snackbar.open}
         autoHideDuration={6000}
         onClose={closeSnackbar}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
       >
         <Alert
           onClose={closeSnackbar}
           severity={snackbar.severity}
           variant="filled"
-          sx={{ width: "100%" }}
+          sx={{ width: "100%", borderRadius: "10px" }}
         >
           {snackbar.message}
         </Alert>

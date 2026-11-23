@@ -4,6 +4,7 @@ import logging
 from rest_framework import status
 from rest_framework.decorators import api_view, authentication_classes, permission_classes
 from rest_framework.response import Response
+from django.core.paginator import Paginator
 from rest_framework_simplejwt.authentication import JWTAuthentication
 
 from ..models import Utilisateur
@@ -17,9 +18,15 @@ logger = logging.getLogger(__name__)
 @authentication_classes([JWTAuthentication])
 @permission_classes([IsAdminUserType])
 def list_enseignants(request):
-    enseignants = Utilisateur.objects.filter(user_type='teacher')
-    serializer = UtilisateurSerializer(enseignants, many=True)
-    return Response(serializer.data)
+    queryset = Utilisateur.objects.filter(user_type='teacher').order_by('id')
+    try:
+        per_page = max(1, int(request.query_params.get('page_size', 10)))
+    except (TypeError, ValueError):
+        per_page = 10
+    paginator = Paginator(queryset, per_page)
+    page_obj = paginator.get_page(request.query_params.get('page', 1))
+    serializer = UtilisateurSerializer(page_obj.object_list, many=True)
+    return Response({'success': True, 'results': serializer.data, 'count': paginator.count, 'page': page_obj.number, 'page_size': paginator.per_page, 'total_pages': paginator.num_pages})
 
 
 @api_view(['POST'])

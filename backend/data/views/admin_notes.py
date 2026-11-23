@@ -3,6 +3,7 @@ import csv
 from rest_framework import status
 from rest_framework.decorators import api_view, authentication_classes, permission_classes
 from rest_framework.response import Response
+from django.core.paginator import Paginator
 from rest_framework_simplejwt.authentication import JWTAuthentication
 
 from ..models import Matiere, Note, Utilisateur
@@ -20,8 +21,15 @@ def get_all_notes(request):
     else:
         notes = Note.objects.all()
 
-    serializer = NoteSerializer(notes, many=True)
-    return Response({'success': True, 'notes': serializer.data})
+    notes = notes.select_related('etudiant', 'matiere').order_by('id')
+    try:
+        per_page = max(1, int(request.query_params.get('page_size', 10)))
+    except (TypeError, ValueError):
+        per_page = 10
+    paginator = Paginator(notes, per_page)
+    page_obj = paginator.get_page(request.query_params.get('page', 1))
+    serializer = NoteSerializer(page_obj.object_list, many=True)
+    return Response({'success': True, 'notes': serializer.data, 'count': paginator.count, 'page': page_obj.number, 'page_size': paginator.per_page, 'total_pages': paginator.num_pages})
 
 
 @api_view(['POST'])
@@ -83,9 +91,15 @@ def get_students_by_matiere_admin(request):
     if not matiere:
         return Response({'success': False, 'message': 'Matière non trouvée'}, status=status.HTTP_404_NOT_FOUND)
 
-    students = Utilisateur.objects.filter(classe=matiere.classe, user_type='student')
-    serializer = UtilisateurSerializer(students, many=True)
-    return Response({'success': True, 'students': serializer.data})
+    queryset = Utilisateur.objects.filter(classe=matiere.classe, user_type='student').order_by('id')
+    try:
+        per_page = max(1, int(request.query_params.get('page_size', 10)))
+    except (TypeError, ValueError):
+        per_page = 10
+    paginator = Paginator(queryset, per_page)
+    page_obj = paginator.get_page(request.query_params.get('page', 1))
+    serializer = UtilisateurSerializer(page_obj.object_list, many=True)
+    return Response({'success': True, 'students': serializer.data, 'count': paginator.count, 'page': page_obj.number, 'page_size': paginator.per_page, 'total_pages': paginator.num_pages})
 
 
 @api_view(['POST'])

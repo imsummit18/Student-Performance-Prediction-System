@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import {
   Box,
   Typography,
@@ -17,13 +17,10 @@ import {
   MenuItem,
   IconButton,
   Grid,
-  Card,
-  CardContent,
   Alert,
   Snackbar,
-  Divider,
   CircularProgress,
-  useTheme
+  useTheme,
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
@@ -32,15 +29,27 @@ import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 import GetAppIcon from "@mui/icons-material/GetApp";
 import SchoolIcon from "@mui/icons-material/School";
 
-import { api, endpoints } from "../../services/api";
-import { DeleteConfirmationDialog, ManagementHeader, ManagementStat, ManagementTable } from "../../components/ManagementUI";
-
+import {
+  api,
+  endpoints,
+  withPagination,
+  unwrapPaginatedList,
+} from "../../services/api";
+import {
+  DeleteConfirmationDialog,
+  ManagementHeader,
+  ManagementStat,
+  ManagementTable,
+  ManagementPagination,
+} from "../../components/ManagementUI";
 
 const AdminMatieres = () => {
   const [matieres, setMatieres] = useState([]);
   const [loading, setLoading] = useState(true);
   const [openDialog, setOpenDialog] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState(null);
+  const [page, setPage] = useState(1);
+  const [count, setCount] = useState(0);
   const [formData, setFormData] = useState({
     id: null,
     nom: "",
@@ -69,19 +78,22 @@ const AdminMatieres = () => {
     setLoading(true);
     setError(null);
     try {
-      const [matieresResponse, classesResponse, enseignantsResponse] = await Promise.all([
-        api.get(endpoints.subjects.list),
-        api.get(endpoints.classes.list),
-        api.get(endpoints.teachers.list)
-      ]);
+      const [matieresResponse, classesResponse, enseignantsResponse] =
+        await Promise.all([
+          api.get(withPagination(endpoints.subjects.list, page)),
+          api.get(withPagination(endpoints.classes.list, 1, 1000)),
+          api.get(withPagination(endpoints.teachers.list, 1, 1000)),
+        ]);
 
       const matieresData = await matieresResponse.json();
       const classesData = await classesResponse.json();
       const enseignantsData = await enseignantsResponse.json();
-      
-      setMatieres(matieresData);
-      setClasses(classesData);
-      setEnseignants(enseignantsData);
+
+      const pagedSubjects = unwrapPaginatedList(matieresData);
+      setMatieres(pagedSubjects.items);
+      setCount(pagedSubjects.count);
+      setClasses(unwrapPaginatedList(classesData).items);
+      setEnseignants(unwrapPaginatedList(enseignantsData).items);
     } catch (error) {
       console.error("Error fetching data:", error);
       setError("Failed to load data");
@@ -93,14 +105,18 @@ const AdminMatieres = () => {
   // Load data on component mount
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [page]);
 
   // Fetch matieres from the backend
   const fetchMatieres = async () => {
     try {
-      const response = await api.get(endpoints.subjects.list);
+      const response = await api.get(
+        withPagination(endpoints.subjects.list, page),
+      );
       const data = await response.json();
-      setMatieres(data);
+      const pagedSubjects = unwrapPaginatedList(data);
+      setMatieres(pagedSubjects.items);
+      setCount(pagedSubjects.count);
     } catch (error) {
       console.error("Error fetching matieres:", error);
       setSnackbar({
@@ -115,13 +131,17 @@ const AdminMatieres = () => {
   const handleFileUpload = async (event) => {
     const file = event.target.files[0];
     if (!file) return;
-  
+
     const formDataUpload = new FormData();
     formDataUpload.append("file", file);
-  
+
     try {
-      const response = await api.post(endpoints.subjects.import, formDataUpload, true);
-  
+      const response = await api.post(
+        endpoints.subjects.import,
+        formDataUpload,
+        true,
+      );
+
       if (response.ok) {
         fetchMatieres();
         setSnackbar({
@@ -150,16 +170,16 @@ const AdminMatieres = () => {
     let csvContent = headers.join(",") + "\n";
 
     if (matieres.length > 0) {
-        matieres.forEach((matiere) => {
-            const row = [
-                matiere.nom,
-                matiere.coefficient,
-                matiere.semestre,
-                matiere.classe?.nom || "Unknown",
-                matiere.enseignant?.email || "Unknown",
-            ];
-            csvContent += row.join(",") + "\n";
-        });
+      matieres.forEach((matiere) => {
+        const row = [
+          matiere.nom,
+          matiere.coefficient,
+          matiere.semestre,
+          matiere.classe?.nom || "Unknown",
+          matiere.enseignant?.email || "Unknown",
+        ];
+        csvContent += row.join(",") + "\n";
+      });
     }
 
     const blob = new Blob([csvContent], { type: "text/csv" });
@@ -211,18 +231,17 @@ const AdminMatieres = () => {
     });
   };
 
-  // Filter matieres by semestre and classe
-  const filteredMatieres = matieres.filter((matiere) => {
-    return (
-      (filters.semestre === "" || matiere.semestre === parseInt(filters.semestre)) &&
-      (filters.classe === "" || matiere.classe?.id === parseInt(filters.classe))
-    );
-  });
+  // Filter matieres by semester and class
+  const filteredMatieres = matieres.filter(
+    (matiere) =>
+      (filters.semestre === "" ||
+        matiere.semestre === parseInt(filters.semestre)) &&
+      (filters.classe === "" ||
+        matiere.classe?.id === parseInt(filters.classe)),
+  );
 
-  // Submit form (create or update a matiere)
   const handleSubmit = async () => {
     try {
-      let response;
       const data = {
         nom: formData.nom,
         coefficient: parseFloat(formData.coefficient),
@@ -231,14 +250,12 @@ const AdminMatieres = () => {
         enseignant_id: formData.enseignant,
       };
 
-      if (editMode) {
-        response = await api.put(endpoints.subjects.update(formData.id), data);
-      } else {
-        response = await api.post(endpoints.subjects.create, data);
-      }
+      const response = editMode
+        ? await api.put(endpoints.subjects.update(formData.id), data)
+        : await api.post(endpoints.subjects.create, data);
 
       if (response.ok) {
-        fetchMatieres();
+        await fetchMatieres();
         setSnackbar({
           open: true,
           message: editMode
@@ -259,19 +276,15 @@ const AdminMatieres = () => {
     }
   };
 
-  // Delete a matiere
   const handleDelete = async (id) => {
-    if (!id) {
-      console.error("Subject ID is undefined");
-      return;
-    }
-
+    if (!id) return;
     try {
       const response = await api.delete(endpoints.subjects.delete(id));
       const data = await response.json();
-      
       if (data.success) {
-        setMatieres(matieres.filter((matiere) => matiere.id !== id));
+        setMatieres((current) =>
+          current.filter((matiere) => matiere.id !== id),
+        );
         setSnackbar({
           open: true,
           message: "Subject deleted successfully",
@@ -281,7 +294,6 @@ const AdminMatieres = () => {
         throw new Error(data.error);
       }
     } catch (error) {
-      console.error("Delete error:", error);
       setSnackbar({
         open: true,
         message: "Failed to delete subject",
@@ -290,161 +302,199 @@ const AdminMatieres = () => {
     }
   };
 
-  // Close Snackbar
   const handleCloseSnackbar = () => {
-    setSnackbar({ ...snackbar, open: false });
+    setSnackbar((current) => ({ ...current, open: false }));
   };
 
   return (
     <Box>
-      {/* Header */}
-      <Box sx={{ mb: 4 }}>
-        <Typography variant="h4" color="primary.main" fontWeight="bold" gutterBottom>
-          Subject Management
-        </Typography>
-        <Typography variant="subtitle1" color="text.secondary" gutterBottom>
-          Manage subjects and their information
-        </Typography>
-        <Divider sx={{ mt: 1, mb: 3 }} />
-      </Box>
-
-      {/* Loading indicator */}
-      {loading && (
-        <Box sx={{ display: 'flex', justifyContent: 'center', my: 4 }}>
-          <CircularProgress />
-        </Box>
-      )}
-
-      {/* Statistics Cards */}
-      <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid item xs={12} sm={6} md={3}>
-          <Card 
-            elevation={2}
-            sx={{ 
-              height: 140, 
-              borderLeft: `4px solid ${theme.palette.primary.main}`,
-              transition: "transform 0.3s, box-shadow 0.3s",
-              "&:hover": {
-                transform: "translateY(-5px)",
-                boxShadow: theme.shadows[4]
-              }
+      <ManagementHeader
+        eyebrow="Academic structure"
+        title="Subject Management"
+        description="Create and organize subjects, coefficients, semesters and assignments."
+        action={
+          <Box
+            sx={{
+              display: "flex",
+              gap: 1,
+              flexWrap: "wrap",
+              justifyContent: { xs: "stretch", sm: "flex-end" },
             }}
           >
-            <CardContent sx={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-              <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <Typography variant="subtitle2" color="text.secondary">
-                  Total Subjects
-                </Typography>
-                <SchoolIcon 
-                  fontSize="medium" 
-                  sx={{ color: theme.palette.primary.main }} 
-                />
-              </Box>
-              <Box>
-                <Typography variant="h3" sx={{ fontWeight: "bold", color: theme.palette.primary.main }}>
-                  {matieres.length}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Registered subjects
-                </Typography>
-              </Box>
-            </CardContent>
-          </Card>
+            <Button
+              variant="outlined"
+              startIcon={<GetAppIcon />}
+              onClick={downloadTemplate}
+              sx={{
+                minHeight: 48,
+                px: 2,
+                borderRadius: "12px",
+                borderColor: "rgba(255,255,255,0.35)",
+                color: "white",
+                fontWeight: 800,
+                "&:hover": {
+                  borderColor: "#56e0da",
+                  bgcolor: "rgba(255,255,255,0.08)",
+                },
+              }}
+            >
+              Template
+            </Button>
+            <Button
+              variant="outlined"
+              component="label"
+              startIcon={<CloudUploadIcon />}
+              sx={{
+                minHeight: 48,
+                px: 2,
+                borderRadius: "12px",
+                borderColor: "rgba(255,255,255,0.35)",
+                color: "white",
+                fontWeight: 800,
+                "&:hover": {
+                  borderColor: "#56e0da",
+                  bgcolor: "rgba(255,255,255,0.08)",
+                },
+              }}
+            >
+              Import CSV
+              <input
+                type="file"
+                hidden
+                accept=".csv"
+                onChange={handleFileUpload}
+              />
+            </Button>
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={() => handleOpenDialog()}
+              sx={{
+                minHeight: 48,
+                px: 2.5,
+                borderRadius: "12px",
+                bgcolor: "primary.main",
+                color: "#071d35",
+                fontWeight: 850,
+                boxShadow: "none",
+                "&:hover": {
+                  bgcolor: "#56e0da",
+                  boxShadow: "0 10px 24px rgba(16,207,201,0.22)",
+                },
+              }}
+            >
+              New Subject
+            </Button>
+          </Box>
+        }
+      />
+
+      <Grid container spacing={2.5} sx={{ mb: 3 }}>
+        <Grid item xs={12} sm={6} md={3}>
+          <ManagementStat
+            title="Total Subjects"
+            value={loading ? "—" : count}
+            icon={<SchoolIcon />}
+            color="#10cfc9"
+            subtitle="Registered subjects"
+          />
         </Grid>
       </Grid>
 
-      {/* Action Buttons */}
-      <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 3 }}>
-        <Button
-          variant="contained"
-          startIcon={<GetAppIcon />}
-          onClick={downloadTemplate}
-          sx={{ mr: 2 }}
-        >
-          Download Template
-        </Button>
-        <Button
-          variant="contained"
-          component="label"
-          startIcon={<CloudUploadIcon />}
-          sx={{ mr: 2 }}
-        >
-          Import CSV
-          <input
-            type="file"
-            hidden
-            accept=".csv"
-            onChange={handleFileUpload}
-          />
-        </Button>
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={() => handleOpenDialog()}
-        >
-          New Subject
-        </Button>
-      </Box>
-
-      {/* Filters */}
-      <Box sx={{ mb: 3 }}>
-        <Typography variant="subtitle1" color="text.secondary" gutterBottom>
-          Filter by semester and class
-        </Typography>
-        <Grid container spacing={2}>
-          {/* Semester Filter */}
-          <Grid item xs={12} sm={6} md={3}>
-            <TextField
-              select
-              fullWidth
-              label="Semester"
-              name="semestre"
-              value={filters.semestre}
-              onChange={(e) => setFilters({...filters, semestre: e.target.value})}
-            >
-              <MenuItem value="">All</MenuItem>
-              {[1, 2, 3, 4].map((semester) => (
-                <MenuItem key={semester} value={semester}>
-                  Semester {semester}
-                </MenuItem>
-              ))}
-            </TextField>
+      <ManagementTable
+        title="All subjects"
+        subtitle={`${filteredMatieres.length} subject${filteredMatieres.length === 1 ? "" : "s"} displayed`}
+        action={
+          <Grid
+            container
+            spacing={1.5}
+            sx={{ width: { xs: "100%", sm: "auto" } }}
+          >
+            <Grid item xs={6} sm="auto">
+              <TextField
+                select
+                size="small"
+                label="Semester"
+                value={filters.semestre}
+                onChange={(e) =>
+                  setFilters({ ...filters, semestre: e.target.value })
+                }
+                sx={{ minWidth: 130 }}
+              >
+                <MenuItem value="">All</MenuItem>
+                {[1, 2, 3, 4].map((semester) => (
+                  <MenuItem key={semester} value={semester}>
+                    Semester {semester}
+                  </MenuItem>
+                ))}
+              </TextField>
+            </Grid>
+            <Grid item xs={6} sm="auto">
+              <TextField
+                select
+                size="small"
+                label="Class"
+                value={filters.classe}
+                onChange={(e) =>
+                  setFilters({ ...filters, classe: e.target.value })
+                }
+                sx={{ minWidth: 130 }}
+              >
+                <MenuItem value="">All</MenuItem>
+                {classes.map((classe) => (
+                  <MenuItem key={classe.id} value={classe.id}>
+                    {classe.nom}
+                  </MenuItem>
+                ))}
+              </TextField>
+            </Grid>
           </Grid>
-
-          {/* Class Filter */}
-          <Grid item xs={12} sm={6} md={3}>
-            <TextField
-              select
-              fullWidth
-              label="Class"
-              name="classe"
-              value={filters.classe}
-              onChange={(e) => setFilters({...filters, classe: e.target.value})}
-            >
-              <MenuItem value="">All</MenuItem>
-              {classes.map((classe) => (
-                <MenuItem key={classe.id} value={classe.id}>
-                  {classe.nom}
-                </MenuItem>
-              ))}
-            </TextField>
-          </Grid>
-        </Grid>
-      </Box>
-
-      {/* Table of matieres */}
-      <Card elevation={2}>
-        <CardContent sx={{ p: 0 }}>
+        }
+      >
+        {loading ? (
+          <Box sx={{ height: 300, display: "grid", placeItems: "center" }}>
+            <CircularProgress />
+          </Box>
+        ) : (
           <TableContainer>
             <Table>
               <TableHead>
-                <TableRow>
-                  <TableCell sx={{ fontWeight: 'bold' }}>Subject Name</TableCell>
-                  <TableCell align="center" sx={{ fontWeight: 'bold' }}>Coefficient</TableCell>
-                  <TableCell align="center" sx={{ fontWeight: 'bold' }}>Semester</TableCell>
-                  <TableCell align="center" sx={{ fontWeight: 'bold' }}>Class</TableCell>
-                  <TableCell align="center" sx={{ fontWeight: 'bold' }}>Teacher</TableCell>
-                  <TableCell align="center" sx={{ fontWeight: 'bold' }}>Actions</TableCell>
+                <TableRow sx={{ bgcolor: "rgba(7,29,53,0.025)" }}>
+                  <TableCell
+                    sx={{ fontWeight: 850, color: "#071d35", py: 1.5 }}
+                  >
+                    Subject Name
+                  </TableCell>
+                  <TableCell
+                    align="center"
+                    sx={{ fontWeight: 850, color: "#071d35", py: 1.5 }}
+                  >
+                    Coefficient
+                  </TableCell>
+                  <TableCell
+                    align="center"
+                    sx={{ fontWeight: 850, color: "#071d35", py: 1.5 }}
+                  >
+                    Semester
+                  </TableCell>
+                  <TableCell
+                    align="center"
+                    sx={{ fontWeight: 850, color: "#071d35", py: 1.5 }}
+                  >
+                    Class
+                  </TableCell>
+                  <TableCell
+                    align="center"
+                    sx={{ fontWeight: 850, color: "#071d35", py: 1.5 }}
+                  >
+                    Teacher
+                  </TableCell>
+                  <TableCell
+                    align="right"
+                    sx={{ fontWeight: 850, color: "#071d35", py: 1.5 }}
+                  >
+                    Actions
+                  </TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -454,13 +504,32 @@ const AdminMatieres = () => {
                       key={matiere.id}
                       hover
                       sx={{
-                        '&:last-child td, &:last-child th': { border: 0 },
-                        transition: "background-color 0.2s",
+                        "&:last-child td": { border: 0 },
+                        "& td": { borderColor: "rgba(7,29,53,0.06)" },
                       }}
                     >
-                      <TableCell>{matiere.nom}</TableCell>
-                      <TableCell align="center">{matiere.coefficient}</TableCell>
-                      <TableCell align="center">{matiere.semestre}</TableCell>
+                      <TableCell sx={{ fontWeight: 750 }}>
+                        {matiere.nom}
+                      </TableCell>
+                      <TableCell align="center">
+                        {matiere.coefficient}
+                      </TableCell>
+                      <TableCell align="center">
+                        <Typography
+                          component="span"
+                          sx={{
+                            px: 1.25,
+                            py: 0.55,
+                            borderRadius: "8px",
+                            bgcolor: "rgba(82,109,245,0.08)",
+                            color: "#526df5",
+                            fontWeight: 800,
+                            fontSize: "0.82rem",
+                          }}
+                        >
+                          Semester {matiere.semestre}
+                        </Typography>
+                      </TableCell>
                       <TableCell align="center">
                         {matiere.classe?.nom || "Unknown"}
                       </TableCell>
@@ -469,18 +538,25 @@ const AdminMatieres = () => {
                           ? `${matiere.enseignant.first_name} ${matiere.enseignant.last_name}`
                           : "Unknown"}
                       </TableCell>
-                      <TableCell align="center">
+                      <TableCell align="right">
                         <IconButton
-                          color="primary"
                           onClick={() => handleOpenDialog(matiere)}
-                          size="small"
+                          sx={{
+                            mr: 0.5,
+                            bgcolor: "rgba(82,109,245,0.08)",
+                            color: "#526df5",
+                            "&:hover": { bgcolor: "rgba(82,109,245,0.16)" },
+                          }}
                         >
                           <EditIcon fontSize="small" />
                         </IconButton>
                         <IconButton
-                          color="error"
                           onClick={() => setDeleteTarget(matiere)}
-                          size="small"
+                          sx={{
+                            bgcolor: "rgba(239,68,68,0.08)",
+                            color: "#ef4444",
+                            "&:hover": { bgcolor: "rgba(239,68,68,0.16)" },
+                          }}
                         >
                           <DeleteIcon fontSize="small" />
                         </IconButton>
@@ -489,29 +565,44 @@ const AdminMatieres = () => {
                   ))
                 ) : (
                   <TableRow>
-                  <TableCell colSpan={6} align="center">
-                    No subjects available
-                  </TableCell>
-                </TableRow>
+                    <TableCell
+                      colSpan={6}
+                      align="center"
+                      sx={{ py: 7, color: "text.secondary" }}
+                    >
+                      No subjects available
+                    </TableCell>
+                  </TableRow>
                 )}
               </TableBody>
             </Table>
           </TableContainer>
-        </CardContent>
-      </Card>
+        )}
+      </ManagementTable>
+      {count > 10 && (
+        <ManagementPagination
+          count={count}
+          page={page}
+          onPageChange={setPage}
+        />
+      )}
 
-      {/* Dialog for adding/editing a matiere */}
       <Dialog
         open={openDialog}
         onClose={handleCloseDialog}
-        maxWidth="md"
+        maxWidth="sm"
         fullWidth
+        PaperProps={{ sx: { borderRadius: "18px" } }}
       >
-        <DialogTitle>
-          {editMode ? "Edit Subject" : "Create New Subject"}
+        <DialogTitle sx={{ px: 3, pt: 3, pb: 1.5 }}>
+          <Typography
+            sx={{ color: "#071d35", fontWeight: 850, fontSize: "1.25rem" }}
+          >
+            {editMode ? "Edit Subject" : "Create New Subject"}
+          </Typography>
         </DialogTitle>
-        <DialogContent>
-          <Grid container spacing={2} sx={{ mt: 1 }}>
+        <DialogContent sx={{ px: 3, pb: 1 }}>
+          <Grid container spacing={2} sx={{ mt: 0.25 }}>
             <Grid item xs={12} sm={6}>
               <TextField
                 name="nom"
@@ -543,10 +634,11 @@ const AdminMatieres = () => {
                 onChange={handleInputChange}
                 required
               >
-                <MenuItem value={1}>Semester 1</MenuItem>
-                <MenuItem value={2}>Semester 2</MenuItem>
-                <MenuItem value={3}>Semester 3</MenuItem>
-                <MenuItem value={4}>Semester 4</MenuItem>
+                {[1, 2, 3, 4].map((semester) => (
+                  <MenuItem key={semester} value={semester}>
+                    Semester {semester}
+                  </MenuItem>
+                ))}
               </TextField>
             </Grid>
             <Grid item xs={12} sm={6}>
@@ -566,7 +658,7 @@ const AdminMatieres = () => {
                 ))}
               </TextField>
             </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid item xs={12}>
               <TextField
                 select
                 name="enseignant"
@@ -585,15 +677,29 @@ const AdminMatieres = () => {
             </Grid>
           </Grid>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseDialog}>Cancel</Button>
-          <Button onClick={handleSubmit} variant="contained">
+        <DialogActions sx={{ px: 3, py: 2.5 }}>
+          <Button
+            onClick={handleCloseDialog}
+            sx={{ fontWeight: 750, color: "text.secondary" }}
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleSubmit}
+            variant="contained"
+            sx={{
+              minWidth: 110,
+              borderRadius: "10px",
+              bgcolor: "#071d35",
+              fontWeight: 800,
+              "&:hover": { bgcolor: "#10aaa5" },
+            }}
+          >
             {editMode ? "Update" : "Create"}
           </Button>
         </DialogActions>
       </Dialog>
 
-      {/* Snackbar for notifications */}
       <Snackbar
         open={snackbar.open}
         autoHideDuration={6000}
@@ -601,23 +707,21 @@ const AdminMatieres = () => {
       >
         <Alert
           onClose={handleCloseSnackbar}
-          // @ts-ignore
           severity={snackbar.severity}
           sx={{ width: "100%" }}
         >
           {snackbar.message}
         </Alert>
       </Snackbar>
-    </Box>
-  );
-};
-
       <DeleteConfirmationDialog
         open={!!deleteTarget}
         title="Delete Subject"
         name={deleteTarget?.nom}
         onClose={() => setDeleteTarget(null)}
-        onConfirm={async () => { await handleDelete(deleteTarget.id); setDeleteTarget(null); }}
+        onConfirm={async () => {
+          await handleDelete(deleteTarget.id);
+          setDeleteTarget(null);
+        }}
       />
     </Box>
   );

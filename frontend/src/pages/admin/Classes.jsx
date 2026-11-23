@@ -33,11 +33,17 @@ import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import SchoolIcon from "@mui/icons-material/School";
 
-import { api, endpoints } from "../../services/api";
+import {
+  api,
+  endpoints,
+  withPagination,
+  unwrapPaginatedList,
+} from "../../services/api";
 import {
   ManagementHeader,
   ManagementStat,
   ManagementTable,
+  ManagementPagination,
 } from "../../components/ManagementUI";
 
 const AdminClasses = () => {
@@ -53,6 +59,8 @@ const AdminClasses = () => {
   const [enseignants, setEnseignants] = useState([]);
   const [error, setError] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
+  const [page, setPage] = useState(1);
+  const [count, setCount] = useState(0);
   const theme = useTheme();
 
   // Fetch classes and enseignants from the backend
@@ -62,15 +70,18 @@ const AdminClasses = () => {
       setError(null);
       try {
         const [classesResponse, enseignantsResponse] = await Promise.all([
-          api.get(endpoints.classes.list),
-          api.get(endpoints.teachers.list),
+          api.get(withPagination(endpoints.classes.list, page)),
+          api.get(withPagination(endpoints.teachers.list, 1, 1000)),
         ]);
 
         const classesData = await classesResponse.json();
         const enseignantsData = await enseignantsResponse.json();
+        const pagedClasses = unwrapPaginatedList(classesData);
+        const teacherData = unwrapPaginatedList(enseignantsData);
 
-        setClasses(classesData);
-        setEnseignants(enseignantsData);
+        setClasses(pagedClasses.items);
+        setCount(pagedClasses.count);
+        setEnseignants(teacherData.items);
       } catch (error) {
         console.error("Error fetching data:", error);
         setError("Failed to load data");
@@ -80,7 +91,7 @@ const AdminClasses = () => {
     };
 
     fetchData();
-  }, []);
+  }, [page]);
 
   const handleOpenDialog = (classe = null) => {
     if (classe) {
@@ -131,7 +142,9 @@ const AdminClasses = () => {
         // Refresh data
         const updatedClassesResponse = await api.get(endpoints.classes.list);
         const updatedClassesData = await updatedClassesResponse.json();
-        setClasses(updatedClassesData);
+        const pagedClasses = unwrapPaginatedList(updatedClassesData);
+        setClasses(pagedClasses.items);
+        setCount(pagedClasses.count);
 
         setOpenDialog(false);
       } else {
@@ -151,7 +164,9 @@ const AdminClasses = () => {
         // Refresh data
         const updatedClassesResponse = await api.get(endpoints.classes.list);
         const updatedClassesData = await updatedClassesResponse.json();
-        setClasses(updatedClassesData);
+        const pagedClasses = unwrapPaginatedList(updatedClassesData);
+        setClasses(pagedClasses.items);
+        setCount(pagedClasses.count);
       } else {
         throw new Error(data.error);
       }
@@ -361,6 +376,13 @@ const AdminClasses = () => {
           </TableContainer>
         )}
       </ManagementTable>
+      {count > 10 && (
+        <ManagementPagination
+          count={count}
+          page={page}
+          onPageChange={setPage}
+        />
+      )}
 
       <Dialog
         open={openDialog}

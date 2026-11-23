@@ -22,7 +22,7 @@ import {
   Snackbar,
   Divider,
   CircularProgress,
-  useTheme
+  useTheme,
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
@@ -31,15 +31,27 @@ import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 import GetAppIcon from "@mui/icons-material/GetApp";
 import PersonIcon from "@mui/icons-material/Person";
 
-import { api, endpoints } from "../../services/api";
-import { DeleteConfirmationDialog, ManagementHeader, ManagementStat, ManagementTable } from "../../components/ManagementUI";
-
+import {
+  api,
+  endpoints,
+  withPagination,
+  unwrapPaginatedList,
+} from "../../services/api";
+import {
+  DeleteConfirmationDialog,
+  ManagementHeader,
+  ManagementStat,
+  ManagementTable,
+  ManagementPagination,
+} from "../../components/ManagementUI";
 
 const AdminEnseignants = () => {
   const [enseignants, setEnseignants] = useState([]);
   const [loading, setLoading] = useState(true);
   const [openDialog, setOpenDialog] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState(null);
+  const [page, setPage] = useState(1);
+  const [count, setCount] = useState(0);
   const [formData, setFormData] = useState({
     id: null,
     first_name: "",
@@ -58,9 +70,13 @@ const AdminEnseignants = () => {
     setLoading(true);
     setError(null);
     try {
-      const response = await api.get(endpoints.teachers.list);
+      const response = await api.get(
+        withPagination(endpoints.teachers.list, page),
+      );
       const data = await response.json();
-      setEnseignants(data);
+      const paged = unwrapPaginatedList(data);
+      setEnseignants(paged.items);
+      setCount(paged.count);
     } catch (error) {
       console.error("Error fetching enseignants:", error);
       setError("Failed to load teachers");
@@ -72,7 +88,7 @@ const AdminEnseignants = () => {
   // Load data on component mount
   useEffect(() => {
     fetchEnseignants();
-  }, []);
+  }, [page]);
 
   // Open dialog for adding/editing an enseignant
   const handleOpenDialog = (enseignant = null) => {
@@ -160,13 +176,17 @@ const AdminEnseignants = () => {
   const handleFileUpload = async (event) => {
     const file = event.target.files[0];
     if (!file) return;
-  
+
     const formData = new FormData();
     formData.append("file", file);
-  
+
     try {
-      const response = await api.post(endpoints.teachers.import, formData, true);
-  
+      const response = await api.post(
+        endpoints.teachers.import,
+        formData,
+        true,
+      );
+
       if (response.ok) {
         await fetchEnseignants();
       } else {
@@ -206,147 +226,196 @@ const AdminEnseignants = () => {
 
   return (
     <Box>
-      <Box sx={{ mb: 4 }}>
-        <Typography variant="h4" color="primary.main" fontWeight="bold" gutterBottom>
-          Teacher Management
-        </Typography>
-        <Typography variant="subtitle1" color="text.secondary" gutterBottom>
-          Manage teachers and their information
-        </Typography>
-        <Divider sx={{ mt: 1, mb: 3 }} />
-      </Box>
+      <ManagementHeader
+        eyebrow="Human resources"
+        title="Teacher Management"
+        description="Manage teacher accounts, contact information and academic assignments."
+        action={
+          <Box
+            sx={{
+              display: "flex",
+              gap: 1,
+              flexWrap: "wrap",
+              justifyContent: { xs: "stretch", sm: "flex-end" },
+            }}
+          >
+            <Button
+              variant="outlined"
+              startIcon={<GetAppIcon />}
+              onClick={downloadTemplate}
+              sx={{
+                minHeight: 48,
+                px: 2,
+                borderRadius: "12px",
+                borderColor: "rgba(255,255,255,0.35)",
+                color: "white",
+                fontWeight: 800,
+                "&:hover": {
+                  borderColor: "#56e0da",
+                  bgcolor: "rgba(255,255,255,0.08)",
+                },
+              }}
+            >
+              Template
+            </Button>
+            <Button
+              variant="outlined"
+              component="label"
+              startIcon={<CloudUploadIcon />}
+              sx={{
+                minHeight: 48,
+                px: 2,
+                borderRadius: "12px",
+                borderColor: "rgba(255,255,255,0.35)",
+                color: "white",
+                fontWeight: 800,
+                "&:hover": {
+                  borderColor: "#56e0da",
+                  bgcolor: "rgba(255,255,255,0.08)",
+                },
+              }}
+            >
+              Import CSV
+              <input
+                type="file"
+                hidden
+                accept=".csv"
+                onChange={handleFileUpload}
+              />
+            </Button>
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={() => handleOpenDialog()}
+              sx={{
+                minHeight: 48,
+                px: 2.5,
+                borderRadius: "12px",
+                bgcolor: "primary.main",
+                color: "#071d35",
+                fontWeight: 850,
+                boxShadow: "none",
+                "&:hover": {
+                  bgcolor: "#56e0da",
+                  boxShadow: "0 10px 24px rgba(16,207,201,0.22)",
+                },
+              }}
+            >
+              New Teacher
+            </Button>
+          </Box>
+        }
+      />
 
-      {/* Loading indicator */}
-      {loading && (
-        <Box sx={{ display: 'flex', justifyContent: 'center', my: 4 }}>
-          <CircularProgress />
-        </Box>
-      )}
-
-      {/* Error message */}
       {error && (
-        <Snackbar open={!!error} autoHideDuration={6000} onClose={() => setError(null)}>
-          <Alert onClose={() => setError(null)} severity="error" sx={{ width: '100%' }}>
+        <Snackbar
+          open={!!error}
+          autoHideDuration={6000}
+          onClose={() => setError(null)}
+        >
+          <Alert
+            onClose={() => setError(null)}
+            severity="error"
+            sx={{ width: "100%" }}
+          >
             {error}
           </Alert>
         </Snackbar>
       )}
 
-      {/* Statistics Cards */}
-      <Grid container spacing={3} sx={{ mb: 4 }}>
+      <Grid container spacing={2.5} sx={{ mb: 3 }}>
         <Grid item xs={12} sm={6} md={3}>
-          <Card 
-            elevation={2}
-            sx={{ 
-              height: 140, 
-              borderLeft: `4px solid ${theme.palette.primary.main}`,
-              transition: "transform 0.3s, box-shadow 0.3s",
-              "&:hover": {
-                transform: "translateY(-5px)",
-                boxShadow: theme.shadows[4]
-              }
-            }}
-          >
-            <CardContent sx={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-              <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <Typography variant="subtitle2" color="text.secondary">
-                  Total Teachers
-                </Typography>
-                <PersonIcon 
-                  fontSize="medium" 
-                  sx={{ color: theme.palette.primary.main }} 
-                />
-              </Box>
-              <Box>
-                <Typography variant="h3" sx={{ fontWeight: "bold", color: theme.palette.primary.main }}>
-                  {enseignants.length}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Registered teachers
-                </Typography>
-              </Box>
-            </CardContent>
-          </Card>
+          <ManagementStat
+            title="Total Teachers"
+            value={loading ? "—" : count}
+            icon={<PersonIcon />}
+            color="#10cfc9"
+            subtitle="Registered teachers"
+          />
         </Grid>
       </Grid>
 
-      {/* Action Buttons */}
-      <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 3 }}>
-        <Button
-          variant="contained"
-          startIcon={<GetAppIcon />}
-          onClick={downloadTemplate}
-          sx={{ mr: 2 }}
-        >
-          Download Template
-        </Button>
-        <Button
-          variant="contained"
-          component="label"
-          startIcon={<CloudUploadIcon />}
-          sx={{ mr: 2 }}
-        >
-          Import CSV
-          <input
-            type="file"
-            hidden
-            accept=".csv"
-            onChange={handleFileUpload}
-          />
-        </Button>
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={() => handleOpenDialog()}
-        >
-          New Teacher
-        </Button>
-      </Box>
-
-      {/* Table of enseignants */}
-      <Card elevation={2}>
-        <CardContent sx={{ p: 0 }}>
+      <ManagementTable
+        title="All teachers"
+        subtitle={`${enseignants.length} teacher${enseignants.length === 1 ? "" : "s"} in the institution`}
+      >
+        {loading ? (
+          <Box sx={{ height: 300, display: "grid", placeItems: "center" }}>
+            <CircularProgress />
+          </Box>
+        ) : (
           <TableContainer>
             <Table>
               <TableHead>
-                <TableRow>
-                  <TableCell sx={{ fontWeight: 'bold' }}>Nom</TableCell>
-                  <TableCell align="center" sx={{ fontWeight: 'bold' }}>First Name</TableCell>
-                  <TableCell align="center" sx={{ fontWeight: 'bold' }}>Email</TableCell>
-                  <TableCell align="center" sx={{ fontWeight: 'bold' }}>Phone</TableCell>
-                  <TableCell align="center" sx={{ fontWeight: 'bold' }}>Actions</TableCell>
+                <TableRow sx={{ bgcolor: "rgba(7,29,53,0.025)" }}>
+                  <TableCell
+                    sx={{ fontWeight: 850, color: "#071d35", py: 1.5 }}
+                  >
+                    Last Name
+                  </TableCell>
+                  <TableCell
+                    sx={{ fontWeight: 850, color: "#071d35", py: 1.5 }}
+                  >
+                    First Name
+                  </TableCell>
+                  <TableCell
+                    sx={{ fontWeight: 850, color: "#071d35", py: 1.5 }}
+                  >
+                    Email
+                  </TableCell>
+                  <TableCell
+                    sx={{ fontWeight: 850, color: "#071d35", py: 1.5 }}
+                  >
+                    Phone
+                  </TableCell>
+                  <TableCell
+                    align="right"
+                    sx={{ fontWeight: 850, color: "#071d35", py: 1.5 }}
+                  >
+                    Actions
+                  </TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
-                {enseignants && enseignants.length > 0 ? (
+                {enseignants.length > 0 ? (
                   enseignants.map((enseignant) => (
-                    <TableRow 
+                    <TableRow
                       key={enseignant.id}
                       hover
-                      sx={{ 
-                        '&:last-child td, &:last-child th': { border: 0 },
-                        transition: "background-color 0.2s",
+                      sx={{
+                        "&:last-child td": { border: 0 },
+                        "& td": { borderColor: "rgba(7,29,53,0.06)" },
                       }}
                     >
-                      <TableCell>{enseignant.last_name}</TableCell>
-                      <TableCell align="center">{enseignant.first_name}</TableCell>
-                      <TableCell align="center">{enseignant.email}</TableCell>
-                      <TableCell align="center">{enseignant.phone}</TableCell>
-                      <TableCell align="center">
+                      <TableCell sx={{ fontWeight: 750 }}>
+                        {enseignant.last_name}
+                      </TableCell>
+                      <TableCell>{enseignant.first_name}</TableCell>
+                      <TableCell sx={{ color: "text.secondary" }}>
+                        {enseignant.email}
+                      </TableCell>
+                      <TableCell sx={{ color: "text.secondary" }}>
+                        {enseignant.phone}
+                      </TableCell>
+                      <TableCell align="right">
                         <IconButton
-                          color="primary"
                           onClick={() => handleOpenDialog(enseignant)}
-                          size="small"
+                          sx={{
+                            mr: 0.5,
+                            bgcolor: "rgba(82,109,245,0.08)",
+                            color: "#526df5",
+                            "&:hover": { bgcolor: "rgba(82,109,245,0.16)" },
+                          }}
                         >
                           <EditIcon fontSize="small" />
                         </IconButton>
                         <IconButton
-                          color="error"
-                          onClick={() => {
-                            setDeleteId(enseignant.id);
-                            setOpenDeleteDialog(true);
+                          onClick={() => setDeleteTarget(enseignant)}
+                          sx={{
+                            bgcolor: "rgba(239,68,68,0.08)",
+                            color: "#ef4444",
+                            "&:hover": { bgcolor: "rgba(239,68,68,0.16)" },
                           }}
-                          size="small"
                         >
                           <DeleteIcon fontSize="small" />
                         </IconButton>
@@ -355,7 +424,11 @@ const AdminEnseignants = () => {
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={5} align="center">
+                    <TableCell
+                      colSpan={5}
+                      align="center"
+                      sx={{ py: 7, color: "text.secondary" }}
+                    >
                       No teachers available
                     </TableCell>
                   </TableRow>
@@ -363,21 +436,32 @@ const AdminEnseignants = () => {
               </TableBody>
             </Table>
           </TableContainer>
-        </CardContent>
-      </Card>
+        )}
+      </ManagementTable>
+      {count > 10 && (
+        <ManagementPagination
+          count={count}
+          page={page}
+          onPageChange={setPage}
+        />
+      )}
 
-      {/* Dialog for adding/editing enseignant */}
       <Dialog
         open={openDialog}
         onClose={handleCloseDialog}
-        maxWidth="md"
+        maxWidth="sm"
         fullWidth
+        PaperProps={{ sx: { borderRadius: "18px" } }}
       >
-        <DialogTitle>
-          {editMode ? "Edit Teacher" : "Create New Teacher"}
+        <DialogTitle sx={{ px: 3, pt: 3, pb: 1.5 }}>
+          <Typography
+            sx={{ color: "#071d35", fontWeight: 850, fontSize: "1.25rem" }}
+          >
+            {editMode ? "Edit Teacher" : "Create New Teacher"}
+          </Typography>
         </DialogTitle>
-        <DialogContent>
-          <Grid container spacing={2} sx={{ mt: 1 }}>
+        <DialogContent sx={{ px: 3, pb: 1 }}>
+          <Grid container spacing={2} sx={{ mt: 0.25 }}>
             <Grid item xs={12} sm={6}>
               <TextField
                 name="last_name"
@@ -421,34 +505,42 @@ const AdminEnseignants = () => {
             </Grid>
           </Grid>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseDialog}>Cancel</Button>
-          <Button onClick={handleSubmit} variant="contained">
+        <DialogActions sx={{ px: 3, py: 2.5 }}>
+          <Button
+            onClick={handleCloseDialog}
+            sx={{ fontWeight: 750, color: "text.secondary" }}
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleSubmit}
+            variant="contained"
+            sx={{
+              minWidth: 110,
+              borderRadius: "10px",
+              bgcolor: "#071d35",
+              fontWeight: 800,
+              "&:hover": { bgcolor: "#10aaa5" },
+            }}
+          >
             {editMode ? "Update" : "Create"}
           </Button>
         </DialogActions>
       </Dialog>
 
-      {/* Delete confirmation dialog */}
-      <DeleteConfirmationDialog
-        open={openDeleteDialog}
-        onClose={() => setOpenDeleteDialog(false)}
-        onConfirm={async () => {
-          if (deleteId) {
-            await handleDelete(deleteId);
-            setDeleteId(null);
-          }
-          setOpenDeleteDialog(false);
-        }}
-        title="Delete Teacher"
-        message="Are you sure you want to delete this teacher? This action cannot be undone."
-      />
       <DeleteConfirmationDialog
         open={!!deleteTarget}
         title="Delete Teacher"
-        name={deleteTarget ? `${deleteTarget.first_name} ${deleteTarget.last_name}` : ''}
+        name={
+          deleteTarget
+            ? `${deleteTarget.first_name} ${deleteTarget.last_name}`
+            : ""
+        }
         onClose={() => setDeleteTarget(null)}
-        onConfirm={async () => { await handleDelete(deleteTarget.id); setDeleteTarget(null); }}
+        onConfirm={async () => {
+          await handleDelete(deleteTarget.id);
+          setDeleteTarget(null);
+        }}
       />
     </Box>
   );

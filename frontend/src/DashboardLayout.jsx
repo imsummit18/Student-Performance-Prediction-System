@@ -28,7 +28,7 @@ const DashboardLayout = ({ role }) => {
     // @ts-ignore
     () => createTheme(getDesignTokens(mode, role)), 
     [mode, role]
-  );
+  );  
 
   // Check if screen is mobile (sm or down)
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));

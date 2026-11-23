@@ -36,6 +36,8 @@ export const useAdminNotes = () => {
     severity: "success",
   });
   const [loading, setLoading] = useState(false);
+  const [page, setPage] = useState(1);
+  const [count, setCount] = useState(0);
   const navigate = useNavigate();
 
   const notify = useCallback((message, severity = "success") => {
@@ -65,8 +67,8 @@ export const useAdminNotes = () => {
     setLoading(true);
     try {
       const [studentsResponse, notesResponse] = await Promise.all([
-        fetchWithTokenRefresh(`${API_BASE_URL}/admin/students-by-matiere/?matiere_id=${selectedMatiere}`),
-        fetchWithTokenRefresh(`${API_BASE_URL}/admin/notes/?matiere_id=${selectedMatiere}`),
+        fetchWithTokenRefresh(`${API_BASE_URL}/admin/students-by-matiere/?matiere_id=${selectedMatiere}&page=${page}&page_size=10`),
+        fetchWithTokenRefresh(`${API_BASE_URL}/admin/notes/?matiere_id=${selectedMatiere}&page=${page}&page_size=10`),
       ]);
 
       const studentsData = await studentsResponse.json();
@@ -75,6 +77,7 @@ export const useAdminNotes = () => {
 
       if (studentsData.success) {
         setStudents(nextStudents);
+        setCount(studentsData.count || nextStudents.length);
       }
 
       if (notesData.success) {
@@ -86,7 +89,7 @@ export const useAdminNotes = () => {
     } finally {
       setLoading(false);
     }
-  }, [notify, selectedMatiere]);
+  }, [notify, page, selectedMatiere]);
 
   useEffect(() => {
     const userRole = getUserRole();
@@ -264,5 +267,8 @@ export const useAdminNotes = () => {
     setSelectedMatiere,
     snackbar,
     students,
+    page,
+    setPage,
+    count,
   };
 };

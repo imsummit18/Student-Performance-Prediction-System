@@ -75,6 +75,20 @@ export const endpoints = {
   }
 };
 
+export const withPagination = (url, page = 1, pageSize = 10) =>
+  `${url}${url.includes('?') ? '&' : '?'}page=${page}&page_size=${pageSize}`;
+
+export const unwrapPaginatedList = (data, resultKey = 'results') => {
+  if (Array.isArray(data)) return { items: data, count: data.length, page: 1, totalPages: 1 };
+  const items = data?.[resultKey] || data?.notes || data?.matieres || data?.students || [];
+  return {
+    items,
+    count: data?.count ?? items.length,
+    page: data?.page ?? 1,
+    totalPages: data?.total_pages ?? Math.ceil((data?.count ?? items.length) / (data?.page_size ?? 10)),
+  };
+};
+
 export const api = {
   get: (url) => fetchWithTokenRefresh(url, { method: 'GET' }),
   post: (url, body, isFormData = false) => {

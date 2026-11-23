@@ -23,7 +23,7 @@ import {
   Divider,
   CircularProgress,
   useTheme,
-  MenuItem
+  MenuItem,
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
@@ -32,9 +32,19 @@ import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 import GetAppIcon from "@mui/icons-material/GetApp";
 import PersonIcon from "@mui/icons-material/Person";
 
-import { api, endpoints } from "../../services/api";
-import { DeleteConfirmationDialog, ManagementHeader, ManagementStat, ManagementTable } from "../../components/ManagementUI";
-
+import {
+  api,
+  endpoints,
+  withPagination,
+  unwrapPaginatedList,
+} from "../../services/api";
+import {
+  DeleteConfirmationDialog,
+  ManagementHeader,
+  ManagementStat,
+  ManagementTable,
+  ManagementPagination,
+} from "../../components/ManagementUI";
 
 const AdminEtudiants = () => {
   const [etudiants, setEtudiants] = useState([]);
@@ -42,6 +52,8 @@ const AdminEtudiants = () => {
   const [filteredEtudiants, setFilteredEtudiants] = useState([]);
   const [openDialog, setOpenDialog] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState(null);
+  const [page, setPage] = useState(1);
+  const [count, setCount] = useState(0);
   const [formData, setFormData] = useState({
     id: null,
     nom: "",
@@ -54,7 +66,7 @@ const AdminEtudiants = () => {
   const [editMode, setEditMode] = useState(false);
   const [error, setError] = useState(null);
   const [classes, setClasses] = useState([]);
-  const [selectedClass, setSelectedClass] = useState("Toutes");
+  const [selectedClass, setSelectedClass] = useState("All");
   const theme = useTheme();
 
   // Fetch students and classes from the backend
@@ -63,16 +75,18 @@ const AdminEtudiants = () => {
     setError(null);
     try {
       const [studentsResponse, classesResponse] = await Promise.all([
-        api.get(endpoints.students.list),
-        api.get(endpoints.classes.list)
+        api.get(withPagination(endpoints.students.list, page)),
+        api.get(withPagination(endpoints.classes.list, 1, 1000)),
       ]);
 
       const studentsData = await studentsResponse.json();
       const classesData = await classesResponse.json();
-      
-      setEtudiants(studentsData);
-      setClasses(classesData);
-      setFilteredEtudiants(studentsData);
+
+      const pagedStudents = unwrapPaginatedList(studentsData);
+      setEtudiants(pagedStudents.items);
+      setCount(pagedStudents.count);
+      setClasses(unwrapPaginatedList(classesData).items);
+      setFilteredEtudiants(pagedStudents.items);
     } catch (error) {
       console.error("Error fetching data:", error);
       setError("Failed to load data");
@@ -84,16 +98,15 @@ const AdminEtudiants = () => {
   // Load data on component mount
   useEffect(() => {
     fetchStudents();
-  }, []);
+  }, [page]);
 
   // Handle filtering students by class
   useEffect(() => {
-    if (selectedClass === "Toutes") {
+    if (selectedClass === "All") {
       setFilteredEtudiants(etudiants);
     } else {
       const filtered = etudiants.filter(
-        (etudiant) =>
-          etudiant.classe && etudiant.classe.nom === selectedClass
+        (etudiant) => etudiant.classe && etudiant.classe.nom === selectedClass,
       );
       setFilteredEtudiants(filtered);
     }
@@ -191,13 +204,17 @@ const AdminEtudiants = () => {
   const handleFileUpload = async (event) => {
     const file = event.target.files[0];
     if (!file) return;
-  
+
     const formData = new FormData();
     formData.append("file", file);
-  
+
     try {
-      const response = await api.post(endpoints.students.import, formData, true);
-  
+      const response = await api.post(
+        endpoints.students.import,
+        formData,
+        true,
+      );
+
       if (response.ok) {
         await fetchStudents();
       } else {
@@ -211,7 +228,14 @@ const AdminEtudiants = () => {
 
   // Handle downloading the CSV template
   const downloadTemplate = () => {
-    const headers = ["Last Name", "First Name", "Email", "Phone", "Apogee Number", "Class"];
+    const headers = [
+      "Last Name",
+      "First Name",
+      "Email",
+      "Phone",
+      "Apogee Number",
+      "Class",
+    ];
     let csvContent = headers.join(",") + "\n";
 
     if (etudiants.length > 0) {
@@ -222,7 +246,7 @@ const AdminEtudiants = () => {
           etudiant.email,
           etudiant.phone,
           etudiant.n_appogie,
-          etudiant.classe ? etudiant.classe.nom : ""
+          etudiant.classe ? etudiant.classe.nom : "",
         ];
         csvContent += row.join(",") + "\n";
       });
@@ -239,175 +263,281 @@ const AdminEtudiants = () => {
 
   return (
     <Box>
-      <Box sx={{ mb: 4 }}>
-        <Typography variant="h4" color="primary.main" fontWeight="bold" gutterBottom>
-          Student Management
-        </Typography>
-        <Typography variant="subtitle1" color="text.secondary" gutterBottom>
-          Manage students and their information
-        </Typography>
-        <Divider sx={{ mt: 1, mb: 3 }} />
-      </Box>
+      <ManagementHeader
+        eyebrow="Student records"
+        title="Student Management"
+        description="Manage student profiles, Apogee numbers, classes and academic records."
+        action={
+          <Box
+            sx={{
+              display: "flex",
+              gap: 1,
+              flexWrap: "wrap",
+              justifyContent: { xs: "stretch", sm: "flex-end" },
+            }}
+          >
+            <Button
+              variant="outlined"
+              startIcon={<GetAppIcon />}
+              onClick={downloadTemplate}
+              sx={{
+                minHeight: 48,
+                px: 2,
+                borderRadius: "12px",
+                borderColor: "rgba(255,255,255,0.35)",
+                color: "white",
+                fontWeight: 800,
+                "&:hover": {
+                  borderColor: "#56e0da",
+                  bgcolor: "rgba(255,255,255,0.08)",
+                },
+              }}
+            >
+              Template
+            </Button>
+            <Button
+              variant="outlined"
+              component="label"
+              startIcon={<CloudUploadIcon />}
+              sx={{
+                minHeight: 48,
+                px: 2,
+                borderRadius: "12px",
+                borderColor: "rgba(255,255,255,0.35)",
+                color: "white",
+                fontWeight: 800,
+                "&:hover": {
+                  borderColor: "#56e0da",
+                  bgcolor: "rgba(255,255,255,0.08)",
+                },
+              }}
+            >
+              Import CSV
+              <input
+                type="file"
+                hidden
+                accept=".csv"
+                onChange={handleFileUpload}
+              />
+            </Button>
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={() => handleOpenDialog()}
+              sx={{
+                minHeight: 48,
+                px: 2.5,
+                borderRadius: "12px",
+                bgcolor: "primary.main",
+                color: "#071d35",
+                fontWeight: 850,
+                boxShadow: "none",
+                "&:hover": {
+                  bgcolor: "#56e0da",
+                  boxShadow: "0 10px 24px rgba(16,207,201,0.22)",
+                },
+              }}
+            >
+              New Student
+            </Button>
+          </Box>
+        }
+      />
 
-      {/* Loading indicator */}
-      {loading && (
-        <Box sx={{ display: 'flex', justifyContent: 'center', my: 4 }}>
-          <CircularProgress />
-        </Box>
-      )}
-
-      {/* Error message */}
       {error && (
-        <Snackbar open={!!error} autoHideDuration={6000} onClose={() => setError(null)}>
-          <Alert onClose={() => setError(null)} severity="error" sx={{ width: '100%' }}>
+        <Snackbar
+          open={!!error}
+          autoHideDuration={6000}
+          onClose={() => setError(null)}
+        >
+          <Alert
+            onClose={() => setError(null)}
+            severity="error"
+            sx={{ width: "100%" }}
+          >
             {error}
           </Alert>
         </Snackbar>
       )}
 
-      {/* Statistics Cards */}
-      <Grid container spacing={3} sx={{ mb: 4 }}>
+      <Grid container spacing={2.5} sx={{ mb: 3 }}>
         <Grid item xs={12} sm={6} md={3}>
-          <Card 
-            elevation={2}
-            sx={{ 
-              height: 140, 
-              borderLeft: `4px solid ${theme.palette.primary.main}`,
-              transition: "transform 0.3s, box-shadow 0.3s",
-              "&:hover": {
-                transform: "translateY(-5px)",
-                boxShadow: theme.shadows[4]
-              }
-            }}
-          >
-            <CardContent sx={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-              <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <Typography variant="subtitle2" color="text.secondary">
-                  Total Students
-                </Typography>
-                <PersonIcon 
-                  fontSize="medium" 
-                  sx={{ color: theme.palette.primary.main }} 
-                />
-              </Box>
-              <Box>
-                <Typography variant="h3" sx={{ fontWeight: "bold", color: theme.palette.primary.main }}>
-                  {etudiants.length}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Registered students
-                </Typography>
-              </Box>
-            </CardContent>
-          </Card>
+          <ManagementStat
+            title="Total Students"
+            value={loading ? "—" : count}
+            icon={<PersonIcon />}
+            color="#10cfc9"
+            subtitle="Registered students"
+          />
         </Grid>
       </Grid>
 
-      {/* Action Buttons */}
-      <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 3 }}>
-        <Button
-          variant="contained"
-          startIcon={<GetAppIcon />}
-          onClick={downloadTemplate}
-          sx={{ mr: 2 }}
-        >
-          Download Template
-        </Button>
-        <Button
-          variant="contained"
-          component="label"
-          startIcon={<CloudUploadIcon />}
-          sx={{ mr: 2 }}
-        >
-          Import CSV
-          <input
-            type="file"
-            hidden
-            accept=".csv"
-            onChange={handleFileUpload}
-          />
-        </Button>
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={() => handleOpenDialog()}
-        >
-          New Student
-        </Button>
-      </Box>
-
-      {/* Class filter */}
-      <Box sx={{ mb: 3 }}>
-        <Typography variant="subtitle1" color="text.secondary" gutterBottom>
-          Filter by class
-        </Typography>
-        <Grid container spacing={2}>
-          {["All", ...classes.map(c => c.nom)].map((classe) => (
-            <Grid item key={classe}>
+      <ManagementTable
+        title="All students"
+        subtitle={`${filteredEtudiants.length} student${filteredEtudiants.length === 1 ? "" : "s"} displayed`}
+        action={
+          <Box
+            sx={{
+              display: "flex",
+              gap: 1,
+              flexWrap: "wrap",
+              maxWidth: 700,
+              justifyContent: "flex-end",
+            }}
+          >
+            {["All", ...classes.map((c) => c.nom)].map((classe) => (
               <Button
+                key={classe}
+                size="small"
                 variant={selectedClass === classe ? "contained" : "outlined"}
-                color="primary"
                 onClick={() => setSelectedClass(classe)}
-                sx={{ 
-                  textTransform: 'none',
-                  transition: "all 0.3s",
-                  '&:hover': {
-                    transform: selectedClass !== classe ? "scale(1.05)" : "none"
-                  }
+                sx={{
+                  borderRadius: "9px",
+                  minWidth: 62,
+                  px: 1.5,
+                  fontWeight: 800,
+                  bgcolor: selectedClass === classe ? "#071d35" : "transparent",
+                  color: selectedClass === classe ? "white" : "text.secondary",
+                  borderColor: "divider",
+                  "&:hover": {
+                    borderColor: "#10cfc9",
+                    bgcolor:
+                      selectedClass === classe
+                        ? "#0b3154"
+                        : "rgba(16,207,201,0.06)",
+                  },
                 }}
               >
                 {classe}
               </Button>
-            </Grid>
-          ))}
-        </Grid>
-      </Box>
-
-      {/* Table of students */}
-      <Card elevation={2}>
-        <CardContent sx={{ p: 0 }}>
+            ))}
+          </Box>
+        }
+      >
+        {loading ? (
+          <Box sx={{ height: 300, display: "grid", placeItems: "center" }}>
+            <CircularProgress />
+          </Box>
+        ) : (
           <TableContainer>
             <Table>
               <TableHead>
-                <TableRow>
-                  <TableCell sx={{ fontWeight: 'bold' }}>Full Name</TableCell>
-                  <TableCell align="center" sx={{ fontWeight: 'bold' }}>N° Apogee</TableCell>
-                  <TableCell align="center" sx={{ fontWeight: 'bold' }}>Email</TableCell>
-                  <TableCell align="center" sx={{ fontWeight: 'bold' }}>Phone</TableCell>
-                  <TableCell align="center" sx={{ fontWeight: 'bold' }}>Class</TableCell>
-                  <TableCell align="center" sx={{ fontWeight: 'bold' }}>Actions</TableCell>
+                <TableRow sx={{ bgcolor: "rgba(7,29,53,0.025)" }}>
+                  <TableCell
+                    sx={{ fontWeight: 850, color: "#071d35", py: 1.5 }}
+                  >
+                    Full Name
+                  </TableCell>
+                  <TableCell
+                    align="center"
+                    sx={{ fontWeight: 850, color: "#071d35", py: 1.5 }}
+                  >
+                    Apogee Number
+                  </TableCell>
+                  <TableCell
+                    sx={{ fontWeight: 850, color: "#071d35", py: 1.5 }}
+                  >
+                    Email
+                  </TableCell>
+                  <TableCell
+                    sx={{ fontWeight: 850, color: "#071d35", py: 1.5 }}
+                  >
+                    Phone
+                  </TableCell>
+                  <TableCell
+                    align="center"
+                    sx={{ fontWeight: 850, color: "#071d35", py: 1.5 }}
+                  >
+                    Class
+                  </TableCell>
+                  <TableCell
+                    align="right"
+                    sx={{ fontWeight: 850, color: "#071d35", py: 1.5 }}
+                  >
+                    Actions
+                  </TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
-                {filteredEtudiants && filteredEtudiants.length > 0 ? (
+                {filteredEtudiants.length > 0 ? (
                   filteredEtudiants.map((etudiant) => (
-                    <TableRow 
+                    <TableRow
                       key={etudiant.id}
                       hover
-                      sx={{ 
-                        '&:last-child td, &:last-child th': { border: 0 },
-                        transition: "background-color 0.2s",
+                      sx={{
+                        "&:last-child td": { border: 0 },
+                        "& td": { borderColor: "rgba(7,29,53,0.06)" },
                       }}
                     >
-                      <TableCell>{etudiant.first_name} {etudiant.last_name}</TableCell>
-                      <TableCell align="center">{etudiant.n_appogie}</TableCell>
-                      <TableCell align="center">{etudiant.email}</TableCell>
-                      <TableCell align="center">{etudiant.phone}</TableCell>
-                      <TableCell align="center">
-                        {etudiant.classe ? etudiant.classe.nom : "No class"}
+                      <TableCell sx={{ fontWeight: 750 }}>
+                        {etudiant.first_name} {etudiant.last_name}
                       </TableCell>
                       <TableCell align="center">
+                        <Typography
+                          component="span"
+                          sx={{
+                            px: 1.25,
+                            py: 0.55,
+                            borderRadius: "8px",
+                            bgcolor: "rgba(82,109,245,0.08)",
+                            color: "#526df5",
+                            fontWeight: 800,
+                            fontSize: "0.82rem",
+                          }}
+                        >
+                          {etudiant.n_appogie}
+                        </Typography>
+                      </TableCell>
+                      <TableCell sx={{ color: "text.secondary" }}>
+                        {etudiant.email}
+                      </TableCell>
+                      <TableCell sx={{ color: "text.secondary" }}>
+                        {etudiant.phone}
+                      </TableCell>
+                      <TableCell align="center">
+                        {etudiant.classe ? (
+                          <Typography
+                            component="span"
+                            sx={{
+                              px: 1.25,
+                              py: 0.55,
+                              borderRadius: "8px",
+                              bgcolor: "rgba(16,207,201,0.10)",
+                              color: "#087a76",
+                              fontWeight: 700,
+                              fontSize: "0.82rem",
+                            }}
+                          >
+                            {etudiant.classe.nom}
+                          </Typography>
+                        ) : (
+                          <Typography
+                            color="text.secondary"
+                            sx={{ fontSize: "0.82rem" }}
+                          >
+                            No class
+                          </Typography>
+                        )}
+                      </TableCell>
+                      <TableCell align="right">
                         <IconButton
-                          color="primary"
                           onClick={() => handleOpenDialog(etudiant)}
-                          size="small"
+                          sx={{
+                            mr: 0.5,
+                            bgcolor: "rgba(82,109,245,0.08)",
+                            color: "#526df5",
+                            "&:hover": { bgcolor: "rgba(82,109,245,0.16)" },
+                          }}
                         >
                           <EditIcon fontSize="small" />
                         </IconButton>
                         <IconButton
-                          color="error"
                           onClick={() => setDeleteTarget(etudiant)}
-                          size="small"
+                          sx={{
+                            bgcolor: "rgba(239,68,68,0.08)",
+                            color: "#ef4444",
+                            "&:hover": { bgcolor: "rgba(239,68,68,0.16)" },
+                          }}
                         >
                           <DeleteIcon fontSize="small" />
                         </IconButton>
@@ -416,7 +546,11 @@ const AdminEtudiants = () => {
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={6} align="center">
+                    <TableCell
+                      colSpan={6}
+                      align="center"
+                      sx={{ py: 7, color: "text.secondary" }}
+                    >
                       No students available
                     </TableCell>
                   </TableRow>
@@ -424,21 +558,32 @@ const AdminEtudiants = () => {
               </TableBody>
             </Table>
           </TableContainer>
-        </CardContent>
-      </Card>
+        )}
+      </ManagementTable>
+      {count > 10 && (
+        <ManagementPagination
+          count={count}
+          page={page}
+          onPageChange={setPage}
+        />
+      )}
 
-      {/* Dialog for adding/editing student */}
       <Dialog
         open={openDialog}
         onClose={handleCloseDialog}
-        maxWidth="md"
+        maxWidth="sm"
         fullWidth
+        PaperProps={{ sx: { borderRadius: "18px" } }}
       >
-        <DialogTitle>
-          {editMode ? "Edit Student" : "Create New Student"}
+        <DialogTitle sx={{ px: 3, pt: 3, pb: 1.5 }}>
+          <Typography
+            sx={{ color: "#071d35", fontWeight: 850, fontSize: "1.25rem" }}
+          >
+            {editMode ? "Edit Student" : "Create New Student"}
+          </Typography>
         </DialogTitle>
-        <DialogContent>
-          <Grid container spacing={2} sx={{ mt: 1 }}>
+        <DialogContent sx={{ px: 3, pb: 1 }}>
+          <Grid container spacing={2} sx={{ mt: 0.25 }}>
             <Grid item xs={12} sm={6}>
               <TextField
                 name="nom"
@@ -490,7 +635,7 @@ const AdminEtudiants = () => {
                 required
               />
             </Grid>
-            <Grid item xs={12}>
+            <Grid item xs={12} sm={6}>
               <TextField
                 select
                 name="classes"
@@ -498,7 +643,6 @@ const AdminEtudiants = () => {
                 fullWidth
                 value={formData.classes[0] || ""}
                 onChange={handleInputChange}
-                SelectProps={{ native: false }}
               >
                 {classes.map((classe) => (
                   <MenuItem key={classe.nom} value={classe.nom}>
@@ -509,23 +653,42 @@ const AdminEtudiants = () => {
             </Grid>
           </Grid>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseDialog}>Cancel</Button>
-          <Button onClick={handleSubmit} variant="contained">
+        <DialogActions sx={{ px: 3, py: 2.5 }}>
+          <Button
+            onClick={handleCloseDialog}
+            sx={{ fontWeight: 750, color: "text.secondary" }}
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleSubmit}
+            variant="contained"
+            sx={{
+              minWidth: 110,
+              borderRadius: "10px",
+              bgcolor: "#071d35",
+              fontWeight: 800,
+              "&:hover": { bgcolor: "#10aaa5" },
+            }}
+          >
             {editMode ? "Update" : "Create"}
           </Button>
         </DialogActions>
       </Dialog>
-    </Box>
-  );
-};
 
       <DeleteConfirmationDialog
         open={!!deleteTarget}
         title="Delete Student"
-        name={deleteTarget ? `${deleteTarget.first_name} ${deleteTarget.last_name}` : ''}
+        name={
+          deleteTarget
+            ? `${deleteTarget.first_name} ${deleteTarget.last_name}`
+            : ""
+        }
         onClose={() => setDeleteTarget(null)}
-        onConfirm={async () => { await handleDelete(deleteTarget.id); setDeleteTarget(null); }}
+        onConfirm={async () => {
+          await handleDelete(deleteTarget.id);
+          setDeleteTarget(null);
+        }}
       />
     </Box>
   );
